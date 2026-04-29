@@ -228,7 +228,7 @@
       <button class="chip" onclick="setFlow('planificacion'); sendSuggestion('Quiero hacer una planificación de clase')">Planificación 📝</button>
       <button class="chip" onclick="setFlow('plan_anual_p0'); sendSuggestion('Quiero hacer el plan anual')">Plan Anual 📅</button>
       <button class="chip" onclick="setFlow('boletin'); sendSuggestion('Necesito hacer boletines')">Boletines 📋</button>
-      <button class="chip" onclick="setFlow('adaptacion'); sendSuggestion('Necesito una adaptación curricular')">Adaptación 🤝</button>
+      <button class="chip" onclick="setFlow('adaptacion_q'); sendSuggestion('Necesito una adaptación curricular')">Adaptación 🤝</button>
       <button class="chip" onclick="setFlow('general'); sendSuggestion('Tengo una consulta')">Consulta libre 💬</button>
     </div>
 
@@ -313,13 +313,21 @@ function isDoc(t) {
 // Buscamos patrones como "Soy María" / "Me llamo Juan" / "Soy docente de 3°"
 function extractDocenteCtx(userText) {
   const t = userText.toLowerCase();
-  // Nombre: "soy [nombre]" / "me llamo [nombre]" / "mi nombre es [nombre]"
-  const nameMatch = userText.match(/(?:soy|me llamo|mi nombre es)\s+([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)?)/i);
-  if (nameMatch && !t.includes('docente') && !t.includes('profe')) {
-    docenteCtx.nombre = nameMatch[1].trim();
+  // Palabras que NO son nombres propios
+  const reserved = ['docente','profe','profesora','profesor','directora','director',
+                    'maestra','maestro','primaria','segundo','tercer','primer'];
+
+  // Nombre: "me llamo [Nombre]" o "mi nombre es [Nombre]" — más específico que "soy"
+  const nameMatch = userText.match(/(?:me llamo|mi nombre es)\s+([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,}(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,})?)/i);
+  if (nameMatch) {
+    const candidate = nameMatch[1].trim().toLowerCase();
+    if (!reserved.some(r => candidate.includes(r))) {
+      docenteCtx.nombre = nameMatch[1].trim();
+    }
   }
-  // Grado: "3°" / "tercer grado" / "3er grado" / "cuarto grado"
-  const gradoMatch = userText.match(/(\d)[°º]?\s*(?:grado)?|(?:primer|segundo|tercer|cuarto|quinto|sexto)\s+(?:grado|ciclo)/i);
+
+  // Grado numérico: "3°", "4to", "5to" — más preciso
+  const gradoMatch = userText.match(/([1-6])[°º](?:\s*grado)?/i);
   if (gradoMatch && !docenteCtx.grado) {
     docenteCtx.grado = gradoMatch[0].trim();
   }
@@ -327,16 +335,17 @@ function extractDocenteCtx(userText) {
 
 // ── Plan progress bar ───────────────────────────────────────────
 function updateProgress(step) {
-  // step 0=intro done, 1=p1 done, 2=p2 done, 3=complete
+  // step: 0=intro lista (→ generar p1), 1=p1 listo (→ p2), 2=p2 listo (→ p3), 3=completo
   $('planProgress').classList.add('visible');
-  const steps = ['planStep1','planStep2','planStep3'];
-  steps.forEach((id,i) => {
-    $(id).className = 'plan-step' + (i < step ? ' done' : i === step-1 ? ' current' : '');
-  });
-  $('planProgressLabel').textContent = step >= 3
-    ? '¡Plan Anual completo — listo para descargar! ✅'
-    : step === 0 ? 'Plan Anual — Introducción lista, generando período 1…'
-    : `Plan Anual — Período ${step} de 3 generado`;
+  const s1 = $('planStep1'), s2 = $('planStep2'), s3 = $('planStep3');
+  s1.className = 'plan-step' + (step > 1 ? ' done' : step === 1 ? ' done' : step === 0 ? ' current' : '');
+  s2.className = 'plan-step' + (step > 2 ? ' done' : step === 2 ? ' done' : step === 1 ? ' current' : '');
+  s3.className = 'plan-step' + (step >= 3 ? ' done'    : step === 2 ? ' current' : '');
+  $('planProgressLabel').textContent =
+    step >= 3 ? '¡Plan Anual completo — listo para descargar! ✅' :
+    step === 0 ? 'Plan Anual — Introducción lista. Generando período 1…' :
+    step === 1 ? 'Plan Anual — Período 1 listo. Generando período 2…' :
+                 'Plan Anual — Período 2 listo. Generando período 3…';
 }
 
 // ── Text rendering ──────────────────────────────────────────────
@@ -537,6 +546,10 @@ function appendMessage(text, role) {
     if (text.includes('[PERIODO_1]')) { plan.p1=text; updateProgress(1); activeFlow='plan_anual_p2'; }
     if (text.includes('[PERIODO_2]')) { plan.p2=text; updateProgress(2); activeFlow='plan_anual_p3'; }
     if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
+    // Cuando el modelo confirma que tiene todo y va a generar la adaptación
+    if (activeFlow === 'adaptacion_q' && text.includes('Generando la adaptación ahora')) {
+      activeFlow = 'adaptacion';
+    }
   }
 
   const row = document.createElement('div');
@@ -674,8 +687,8 @@ async function sendMessage(text) {
   else if (activeFlow==='adaptacion')      loadTimer=setTimeout(()=>showToast('Clara está preparando la adaptación…',15000),2500);
   else if (activeFlow==='planificacion')   loadTimer=setTimeout(()=>showToast('Clara está armando la planificación…',15000),2500);
 
+  extractDocenteCtx(text); // capturar antes del fetch para que este request ya lo use
   const pending = {role:'user',parts:[{text}]};
-  extractDocenteCtx(text); // capturar nombre/grado si el docente los menciona
   try {
     const reply = await fetchMsg(text);
     $('typingRow').classList.remove('visible');
@@ -732,6 +745,9 @@ function sendSuggestion(text) {
   if(isLoading)return;
   if(sug)sug.style.display='none';
   plan.reset();
+  // docenteCtx.nombre persiste — el docente es el mismo entre flujos
+  // solo limpiamos grado porque puede cambiar entre planificaciones
+  docenteCtx.grado = '';
   inp.value=text; autoResize(); updateChar(); handleSend();
 }
 
