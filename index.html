@@ -225,7 +225,7 @@
     </div>
 
     <div class="suggestions" id="suggestions">
-      <button class="chip" onclick="setFlow('planificacion'); sendSuggestion('Quiero hacer una planificación de clase')">Planificación 📝</button>
+      <button class="chip" onclick="setFlow('planificacion_q'); sendSuggestion('Quiero hacer una planificación de clase')">Planificación 📝</button>
       <button class="chip" onclick="setFlow('plan_anual_p0'); sendSuggestion('Quiero hacer el plan anual')">Plan Anual 📅</button>
       <button class="chip" onclick="setFlow('boletin'); sendSuggestion('Necesito hacer boletines')">Boletines 📋</button>
       <button class="chip" onclick="setFlow('adaptacion_q'); sendSuggestion('Necesito una adaptación curricular')">Adaptación 🤝</button>
@@ -546,9 +546,12 @@ function appendMessage(text, role) {
     if (text.includes('[PERIODO_1]')) { plan.p1=text; updateProgress(1); activeFlow='plan_anual_p2'; }
     if (text.includes('[PERIODO_2]')) { plan.p2=text; updateProgress(2); activeFlow='plan_anual_p3'; }
     if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
-    // Cuando el modelo confirma que tiene todo y va a generar la adaptación
+    // Cuando el modelo confirma que va a generar
     if (activeFlow === 'adaptacion_q' && text.includes('Generando la adaptación ahora')) {
       activeFlow = 'adaptacion';
+    }
+    if (activeFlow === 'planificacion_q' && text.includes('Generando la planificación ahora')) {
+      activeFlow = 'planificacion';
     }
   }
 
