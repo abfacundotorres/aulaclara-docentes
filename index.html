@@ -542,10 +542,19 @@ function makeDownloadBtn(content, label='⬇️ Descargar Word', cls='download')
 function appendMessage(text, role) {
   // Plan Anual accumulation + flow advance
   if (role==='bot') {
-    if (text.includes('[PERIODO_0]')) { plan.p0=text; updateProgress(0); activeFlow='plan_anual_p1'; }
-    if (text.includes('[PERIODO_1]')) { plan.p1=text; updateProgress(1); activeFlow='plan_anual_p2'; }
-    if (text.includes('[PERIODO_2]')) { plan.p2=text; updateProgress(2); activeFlow='plan_anual_p3'; }
-    if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
+    if (text.includes('[PERIODO_0]')) {
+  plan.p0=text; updateProgress(0); activeFlow='plan_anual_p1';
+  setTimeout(() => { if (!isLoading) sendMessage('Generá el período 1'); }, 800);
+}
+if (text.includes('[PERIODO_1]')) {
+  plan.p1=text; updateProgress(1); activeFlow='plan_anual_p2';
+  setTimeout(() => { if (!isLoading) sendMessage('Generá el período 2'); }, 800);
+}
+if (text.includes('[PERIODO_2]')) {
+  plan.p2=text; updateProgress(2); activeFlow='plan_anual_p3';
+  setTimeout(() => { if (!isLoading) sendMessage('Generá el período 3'); }, 800);
+}
+if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
     // Cuando el modelo confirma que va a generar
     if (activeFlow === 'adaptacion_q' && text.includes('Generando la adaptación ahora')) {
       activeFlow = 'adaptacion';
