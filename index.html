@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="description" content="Aula Clara — Asistente pedagógica para docentes y directivos de primaria en Córdoba">
 <meta name="theme-color" content="#D95F1A">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https://i.imgur.com data:; connect-src https://aulaclara.abfacundotorres.workers.dev https://api.groq.com https://script.google.com;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https://i.imgur.com data:; connect-src https://aulaclara.abfacundotorres.workers.dev https://api.groq.com;">
 <title>Aula Clara — Asistente Pedagógica</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -117,27 +117,47 @@
   .chip:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
   .toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--brown-dark); color: #FFF8F0; padding: 8px 18px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none; z-index: 100; white-space: nowrap; max-width: 90vw; text-align: center; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  /* ── Botón flotante encuesta ── */
+
+  /* ── Botones flotantes (resumen + encuesta) ── */
   .float-toast {
-    position: fixed; left: 50%; z-index: 10;
-    display: none; align-items: center; gap: 8px;
-    padding: 12px 22px; border-radius: 24px;
-    font-size: 14px; font-weight: 600;
+    position: fixed;
+    left: 50%;
+    z-index: 10;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 600;
     font-family: 'DM Sans', system-ui, sans-serif;
     cursor: pointer;
     box-shadow: 0 3px 16px rgba(217,95,26,0.22);
-    transition: background 0.15s, box-shadow 0.15s;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
     white-space: nowrap;
     transform: translateX(calc(min(340px, 50vw) - 100% - 14px));
   }
-  .float-toast.visible { display: flex; animation: floatIn 0.25s ease-out forwards; }
+  .float-toast.visible {
+    display: flex;
+    animation: floatIn 0.25s ease-out forwards;
+  }
   @keyframes floatIn {
     from { opacity: 0; transform: translateX(calc(min(340px, 50vw) - 100% - 14px)) translateY(10px); }
     to   { opacity: 1; transform: translateX(calc(min(340px, 50vw) - 100% - 14px)) translateY(0); }
   }
-  #resumeBtn { bottom: 158px; background: var(--warm-white); border: 2px solid var(--orange); color: var(--orange); }
+  #resumeBtn {
+    bottom: 158px;
+    background: var(--warm-white);
+    border: 2px solid var(--orange);
+    color: var(--orange);
+  }
   #resumeBtn:hover { background: var(--orange-pale); box-shadow: 0 5px 20px rgba(217,95,26,0.28); }
-  #surveyFloatBtn { bottom: 108px; background: var(--orange); border: none; color: #FFF8F0; }
+  #surveyFloatBtn {
+    bottom: 108px;
+    background: var(--orange);
+    border: none;
+    color: #FFF8F0;
+  }
   #surveyFloatBtn:hover { background: var(--orange-hover); box-shadow: 0 5px 20px rgba(217,95,26,0.32); }
 
   /* ── Modal encuesta ── */
@@ -148,7 +168,9 @@
     padding: 20px 20px 32px; opacity: 0; pointer-events: none;
     transition: opacity 0.2s;
   }
-  @media (min-height: 600px) { .modal-overlay { align-items: center; padding: 20px; } }
+  @media (min-height: 600px) {
+    .modal-overlay { align-items: center; padding: 20px; }
+  }
   .modal-overlay.visible { opacity: 1; pointer-events: all; }
   .modal-card {
     background: var(--warm-white); border: 1px solid var(--border);
@@ -178,14 +200,17 @@
   .modal-btn.secondary { background: transparent; color: var(--brown-light); border: 1.5px solid var(--border); }
   .modal-btn.secondary:hover { background: var(--orange-pale); }
   .uso-btns { display: flex; gap: 6px; margin-bottom: 20px; }
-  .uso-btn { flex: 1; padding: 8px 4px; border-radius: 10px; font-size: 11px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; border: 1.5px solid var(--border); background: var(--cream); color: var(--brown-dark); transition: all 0.15s; line-height: 1.4; }
+  .uso-btn {
+    flex: 1; padding: 8px 4px; border-radius: 10px; font-size: 11px; font-weight: 500;
+    cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif;
+    border: 1.5px solid var(--border); background: var(--cream);
+    color: var(--brown-dark); transition: all 0.15s; line-height: 1.4;
+  }
   .uso-btn.active { background: var(--orange); color: #FFF8F0; border-color: var(--orange); }
   .uso-btn:hover:not(.active) { background: var(--orange-pale); border-color: var(--orange); }
   .modal-thanks { display: none; padding: 16px 0 4px; }
   .modal-thanks-icon { font-size: 36px; margin-bottom: 8px; }
   .modal-thanks p { font-size: 13px; color: var(--brown-light); line-height: 1.5; }
-
-  @supports (height: 100dvh) { html, body { height: 100dvh; } .page { height: 100dvh; } }
 
   @media (max-width: 480px) {
     .page { padding: 8px 8px 0; }
@@ -208,14 +233,14 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<!-- Botón resumen flotante -->
-<button id="resumeBtn" class="float-toast" title="Generar resumen de esta consulta" onclick="triggerResumen()">
-  📋 Resumen
-</button>
-
 <!-- Botón encuesta flotante -->
 <button id="surveyFloatBtn" class="float-toast" onclick="openModal('')" title="¿Te fue útil Clara hoy?">
   ⭐ ¿Te fue útil?
+</button>
+
+<!-- Botón resumen flotante -->
+<button id="resumeBtn" class="float-toast" title="Generar resumen de esta consulta" onclick="triggerResumen()">
+  📋 Resumen
 </button>
 
 <!-- Modal encuesta de satisfacción -->
@@ -384,21 +409,18 @@
     </div>
   </div>
 </div>
-</div>
 
 <script>
 // ── Config ──────────────────────────────────────────────────────
-const WORKER_URL       = 'https://aulaclara.abfacundotorres.workers.dev';
-const MAX_CHARS        = 2000;
-const MAX_RETRY        = 2;
-const RETRY_BASE       = 1200;
-const CLIENT_TMOUT     = 33000;
-const HISTORY_LIMIT    = 16;
-const RESUME_THRESHOLD = 4;  // mensajes para mostrar botón resumen
-const SURVEY_THRESHOLD = 5;  // mensajes para mostrar encuesta
-
-// Session ID anónimo — consolida todos los eventos de una sesión
-const SESSION_ID = Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+const WORKER_URL    = 'https://aulaclara.abfacundotorres.workers.dev';
+const SESSION_ID    = Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+const MAX_CHARS     = 2000;
+const MAX_RETRY     = 2;
+const RETRY_BASE    = 1200;
+const CLIENT_TMOUT  = 33000;
+const HISTORY_LIMIT = 16;
+const RESUME_THRESHOLD = 4; // mensajes mínimos para mostrar botón resumen
+const SURVEY_THRESHOLD  = 5; // mensajes para mostrar botón encuesta
 
 // ── State ───────────────────────────────────────────────────────
 let history      = [];
@@ -412,9 +434,9 @@ let surveyUso    = '';
 let lastDocTitle = '';
 let messageCount = 0;
 let surveyShown  = false;
-let sessionChip  = '';
+let sessionChip  = ''; // chip usado para iniciar la sesión
 
-// Plan Anual state — accumulates 4 parts
+// Plan Anual state
 const plan = {
   p0: null, p1: null, p2: null, p3: null,
   reset() { this.p0=this.p1=this.p2=this.p3=null; $('planProgress').classList.remove('visible'); },
@@ -436,104 +458,16 @@ const inp = $('userInput');
 const btn = $('sendBtn');
 const sug = $('suggestions');
 
-// ── Encuesta ────────────────────────────────────────────────────
-function setStar(n) {
-  surveyRating = n;
-  document.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('active', i < n));
-  $('surveySubmitBtn').disabled = false;
-}
-
-function setUso(v) {
-  surveyUso = v;
-  document.querySelectorAll('.uso-btn').forEach(b => b.classList.toggle('active', b.dataset.v === v));
-}
-
-function openModal(docTitle) {
-  lastDocTitle = docTitle || '';
-  $('surveyFloatBtn').classList.remove('visible');
-  surveyRating = 0; surveyUso = '';
-  document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.uso-btn').forEach(b => b.classList.remove('active'));
-  $('surveySubmitBtn').disabled = true;
-  $('surveyForm').style.display = 'block';
-  $('surveyThanks').style.display = 'none';
-  $('surveyModal').classList.add('visible');
-}
-
-function closeModal() {
-  $('surveyModal').classList.remove('visible');
-  if (!surveyShown && messageCount >= SURVEY_THRESHOLD) {
-    setTimeout(() => {
-      $('surveyFloatBtn').style.display = '';
-      $('surveyFloatBtn').classList.add('visible');
-    }, 3000);
-  }
-}
-
-async function submitSurvey() {
-  const b = $('surveySubmitBtn');
-  b.disabled = true; b.textContent = 'Enviando…';
-  try {
-    await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        _survey:    true,
-        tipo:       'encuesta',
-        timestamp:  new Date().toISOString(),
-        session_id: SESSION_ID,
-        municipio:  sessionPin  || 'demo',
-        flow:       activeFlow,
-        chip_usado: sessionChip || activeFlow,
-        documento:  lastDocTitle,
-        utilidad:   surveyRating,
-        tiempo:     $('surveyTiempo').value,
-        uso:        surveyUso,
-      }),
-    });
-  } catch { /* silencioso */ }
-  surveyShown = true;
-  $('surveyFloatBtn').classList.remove('visible');
-  $('surveyFloatBtn').style.display = 'none';
-  $('surveyForm').style.display = 'none';
-  $('surveyThanks').style.display = 'block';
-  setTimeout(closeModal, 2200);
-}
-
-function updateResumeBtn() {
-  const showResume = messageCount >= RESUME_THRESHOLD && !isLoading;
-  const showSurvey = messageCount >= SURVEY_THRESHOLD && !surveyShown && !isLoading;
-  $('resumeBtn').classList.toggle('visible', showResume);
-  if (showSurvey) $('surveyFloatBtn').classList.add('visible');
-}
-
-function checkSurveyTrigger() {
-  updateResumeBtn();
-}
-
-async function triggerResumen() {
-  if(isLoading) return;
-  const prevFlow = activeFlow;
-  activeFlow = 'resumen';
-  await sendMessage('Generá un resumen de esta consulta');
-  activeFlow = prevFlow;
-}
-
 // ── isDocumentText ──────────────────────────────────────────────
 function isDoc(t) {
   return t.includes('[TITULO]') || t.includes('[FIN_DOCUMENTO]') || t.includes('[PERIODO_');
 }
 
-// ── Extrae contexto del docente de la conversación ─────────────
-// El docente suele dar su nombre en P1 de cualquier flujo.
-// Buscamos patrones como "Soy María" / "Me llamo Juan" / "Soy docente de 3°"
+// ── Extrae contexto del docente ─────────────────────────────────
 function extractDocenteCtx(userText) {
   const t = userText.toLowerCase();
-  // Palabras que NO son nombres propios
   const reserved = ['docente','profe','profesora','profesor','directora','director',
                     'maestra','maestro','primaria','segundo','tercer','primer'];
-
-  // Nombre: "me llamo [Nombre]" o "mi nombre es [Nombre]" — más específico que "soy"
   const nameMatch = userText.match(/(?:me llamo|mi nombre es)\s+([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,}(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,})?)/i);
   if (nameMatch) {
     const candidate = nameMatch[1].trim().toLowerCase();
@@ -541,8 +475,6 @@ function extractDocenteCtx(userText) {
       docenteCtx.nombre = nameMatch[1].trim();
     }
   }
-
-  // Grado numérico: "3°", "4to", "5to" — más preciso
   const gradoMatch = userText.match(/([1-6])[°º](?:\s*grado)?/i);
   if (gradoMatch && !docenteCtx.grado) {
     docenteCtx.grado = gradoMatch[0].trim();
@@ -551,7 +483,6 @@ function extractDocenteCtx(userText) {
 
 // ── Plan progress bar ───────────────────────────────────────────
 function updateProgress(step) {
-  // step: 0=intro lista (→ generar p1), 1=p1 listo (→ p2), 2=p2 listo (→ p3), 3=completo
   $('planProgress').classList.add('visible');
   const s1 = $('planStep1'), s2 = $('planStep2'), s3 = $('planStep3');
   s1.className = 'plan-step' + (step > 1 ? ' done' : step === 1 ? ' done' : step === 0 ? ' current' : '');
@@ -705,7 +636,6 @@ async function generateWord(rawContent) {
       children.push(new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:sec.title,bold:true,size:26,font:'Arial',color:'D95F1A'})],spacing:{before:320,after:100}}));
       sec.items.forEach(pushItem);
     });
-    // Observaciones
     children.push(new Paragraph({spacing:{before:480},children:[]}));
     children.push(new Paragraph({border:{top:{style:BorderStyle.SINGLE,size:4,color:'EDD5B0',space:1}},spacing:{after:100},children:[]}));
     children.push(new Paragraph({children:[new TextRun({text:'Observaciones:',size:20,bold:true,font:'Arial',color:'C47A3A'})],spacing:{after:160}}));
@@ -735,6 +665,92 @@ async function generateWord(rawContent) {
   setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
 
+// ── Encuesta ────────────────────────────────────────────────────
+function setStar(n) {
+  surveyRating = n;
+  document.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('active', i < n));
+  $('surveySubmitBtn').disabled = false;
+}
+
+function setUso(v) {
+  surveyUso = v;
+  document.querySelectorAll('.uso-btn').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+}
+
+function openModal(docTitle) {
+  lastDocTitle = docTitle || '';
+  $('surveyFloatBtn').classList.remove('visible');
+  surveyRating = 0; surveyUso = '';
+  document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.uso-btn').forEach(b => b.classList.remove('active'));
+  $('surveySubmitBtn').disabled = true;
+  $('surveyForm').style.display = 'block';
+  $('surveyThanks').style.display = 'none';
+  $('surveyModal').classList.add('visible');
+}
+
+function closeModal() {
+  $('surveyModal').classList.remove('visible');
+  if (!surveyShown && messageCount >= SURVEY_THRESHOLD) {
+    setTimeout(() => {
+      $('surveyFloatBtn').style.display = '';
+      $('surveyFloatBtn').classList.add('visible');
+    }, 3000);
+  }
+}
+
+async function submitSurvey() {
+  const sbtn = $('surveySubmitBtn');
+  sbtn.disabled = true; sbtn.textContent = 'Enviando…';
+  try {
+    await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        _survey:    true,
+        tipo:       'encuesta',
+        timestamp:  new Date().toISOString(),
+        session_id: SESSION_ID,
+        municipio:  sessionPin  || 'demo',
+        flow:       activeFlow,
+        chip_usado: sessionChip || activeFlow,
+        documento:  lastDocTitle,
+        utilidad:   surveyRating,
+        tiempo:     $('surveyTiempo').value,
+        uso:        surveyUso,
+      }),
+    });
+  } catch { /* silencioso */ }
+  surveyShown = true;
+  $('surveyFloatBtn').classList.remove('visible');
+  $('surveyFloatBtn').style.display = 'none';
+  $('surveyForm').style.display = 'none';
+  $('surveyThanks').style.display = 'block';
+  setTimeout(closeModal, 2200);
+}
+
+// ── Botón resumen ───────────────────────────────────────────────
+function updateResumeBtn() {
+  // No mostrar el botón Resumen mientras se está generando el propio resumen
+  const showResume = messageCount >= RESUME_THRESHOLD && !isLoading && activeFlow !== 'resumen';
+  const showSurvey = messageCount >= SURVEY_THRESHOLD && !surveyShown && !isLoading;
+  $('resumeBtn').classList.toggle('visible', showResume);
+  if (showSurvey) $('surveyFloatBtn').classList.add('visible');
+}
+
+async function triggerResumen() {
+  if(isLoading) return;
+  const prevFlow = activeFlow;
+  activeFlow = 'resumen';
+  // sendMessage es async — esperamos a que termine antes de restaurar el flow
+  // para que historyPayload y logEvent vean 'resumen', no el flow anterior
+  try {
+    await sendMessage('Generá un resumen de esta consulta');
+  } finally {
+    activeFlow = prevFlow;
+  }
+}
+
 // ── Download button ─────────────────────────────────────────────
 function makeDownloadBtn(content, label='⬇️ Descargar Word', cls='download') {
   const b = document.createElement('button');
@@ -751,14 +767,16 @@ function makeDownloadBtn(content, label='⬇️ Descargar Word', cls='download')
       // Registrar descarga en métricas
       try {
         fetch(WORKER_URL, {
-          method:'POST', headers:{'Content-Type':'application/json'},
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            _survey:false, tipo:'evento',
-            timestamp:new Date().toISOString(),
-            session_id:SESSION_ID, municipio:sessionPin||'demo',
-            flow:activeFlow, chip_usado:sessionChip||'',
-            doc_descargado:docTitle,
-            rag_usado:false, rag_chunks:0, model_used:'download',
+            _survey: false,
+            tipo: 'evento', timestamp: new Date().toISOString(),
+            session_id: SESSION_ID, municipio: sessionPin || 'demo',
+            flow: activeFlow, chip_usado: sessionChip || '',
+            doc_descargado: docTitle,
+            rag_usado: false, rag_chunks: 0, rag_error: false,
+            model_used: 'download',
           }),
         });
       } catch {}
@@ -777,19 +795,18 @@ function appendMessage(text, role) {
   // Plan Anual accumulation + flow advance
   if (role==='bot') {
     if (text.includes('[PERIODO_0]')) {
-  plan.p0=text; updateProgress(0); activeFlow='plan_anual_p1';
-  setTimeout(() => { if (!isLoading) sendMessage('Generá el período 1'); }, 800);
-}
-if (text.includes('[PERIODO_1]')) {
-  plan.p1=text; updateProgress(1); activeFlow='plan_anual_p2';
-  setTimeout(() => { if (!isLoading) sendMessage('Generá el período 2'); }, 800);
-}
-if (text.includes('[PERIODO_2]')) {
-  plan.p2=text; updateProgress(2); activeFlow='plan_anual_p3';
-  setTimeout(() => { if (!isLoading) sendMessage('Generá el período 3'); }, 800);
-}
-if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
-    // Cuando el modelo confirma que va a generar
+      plan.p0=text; updateProgress(0); activeFlow='plan_anual_p1';
+      setTimeout(() => { if (!isLoading) sendMessage('Generá el período 1'); }, 800);
+    }
+    if (text.includes('[PERIODO_1]')) {
+      plan.p1=text; updateProgress(1); activeFlow='plan_anual_p2';
+      setTimeout(() => { if (!isLoading) sendMessage('Generá el período 2'); }, 800);
+    }
+    if (text.includes('[PERIODO_2]')) {
+      plan.p2=text; updateProgress(2); activeFlow='plan_anual_p3';
+      setTimeout(() => { if (!isLoading) sendMessage('Generá el período 3'); }, 800);
+    }
+    if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
     if (activeFlow === 'adaptacion_q' && text.includes('Generando la adaptación ahora')) {
       activeFlow = 'adaptacion';
     }
@@ -820,7 +837,6 @@ if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
     const acts = document.createElement('div');
     acts.className = 'bubble-actions';
 
-    // Copy button — always
     const cp = document.createElement('button');
     cp.className='action-btn'; cp.innerHTML='📋 Copiar';
     cp.onclick = () => {
@@ -843,16 +859,13 @@ if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
     const isP3   = text.includes('[PERIODO_3]');
     const isPlan = isP0||isP1||isP2||isP3;
 
-    // Período individual (P1, P2, P3)
     if (hasFin && (isP1||isP2||isP3)) {
       const num = isP1?1:isP2?2:3;
       acts.appendChild(makeDownloadBtn(text,`⬇️ Período ${num}`));
     }
-    // Plan completo cuando P3 está listo
     if (isP3 && plan.complete()) {
       acts.appendChild(makeDownloadBtn(plan.fullContent(),'⬇️ Plan Anual completo','download-full'));
     }
-    // Documentos normales (no plan anual)
     if (hasFin && !isPlan) {
       acts.appendChild(makeDownloadBtn(text));
     }
@@ -893,7 +906,15 @@ async function fetchMsg(message, attempt=0) {
     const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({message, history:historyPayload(), pin:sessionPin, flow:activeFlow, ctx:docenteCtx, chip_usado:sessionChip, session_id:SESSION_ID}),
+      body: JSON.stringify({
+        message,
+        history:    historyPayload(),
+        pin:        sessionPin,
+        flow:       activeFlow,
+        ctx:        docenteCtx,
+        chip_usado: sessionChip,
+        session_id: SESSION_ID,
+      }),
       signal: ctrl.signal,
     });
     clearTimeout(tmout);
@@ -922,28 +943,29 @@ async function fetchMsg(message, attempt=0) {
 async function sendMessage(text) {
   if (!text.trim()||isLoading) return;
   isLoading=true; btn.disabled=true; setChips(true);
+  $('resumeBtn').classList.remove('visible');
   appendMessage(text,'user');
   $('typingRow').classList.add('visible');
   msg.scrollTop=msg.scrollHeight;
 
-  // Loading toast for long operations
   let loadTimer = null;
   if (activeFlow.startsWith('plan_anual')) loadTimer=setTimeout(()=>showToast('Clara está armando el plan…',15000),2500);
   else if (activeFlow==='boletin')         loadTimer=setTimeout(()=>showToast('Clara está redactando el informe…',15000),2500);
   else if (activeFlow==='adaptacion')      loadTimer=setTimeout(()=>showToast('Clara está preparando la adaptación…',15000),2500);
   else if (activeFlow==='planificacion')   loadTimer=setTimeout(()=>showToast('Clara está armando la planificación…',15000),2500);
 
-  extractDocenteCtx(text); // capturar antes del fetch para que este request ya lo use
+  extractDocenteCtx(text);
   const pending = {role:'user',parts:[{text}]};
   try {
     const reply = await fetchMsg(text);
     $('typingRow').classList.remove('visible');
+    $('toast').classList.remove('show');
     appendMessage(reply,'bot');
     history.push(pending);
     history.push({role:'model',parts:[{text:reply}]});
     if (history.length>HISTORY_LIMIT*2) history=history.slice(-HISTORY_LIMIT*2);
     messageCount++;
-    checkSurveyTrigger();
+    updateResumeBtn();
   } catch(err) {
     $('typingRow').classList.remove('visible');
     const msgs = {
@@ -953,7 +975,8 @@ async function sendMessage(text) {
     appendMessage(msgs[err.message]||(err.name==='AbortError'?'Tardó demasiado. Intentá de nuevo.':err.message?.length<120?err.message:'Problema técnico. Intentá de nuevo.'),'bot');
   } finally {
     if(loadTimer)clearTimeout(loadTimer);
-    isLoading=false; btn.disabled=inp.value.trim().length===0; setChips(false); inp.focus();
+    isLoading=false; btn.disabled=inp.value.trim().length===0; setChips(false);
+    updateResumeBtn(); inp.focus();
   }
 }
 
@@ -993,8 +1016,8 @@ function sendSuggestion(text, chip) {
   if(isLoading)return;
   if(sug)sug.style.display='none';
   plan.reset();
-  sessionChip = chip || '';
   docenteCtx.grado = '';
+  sessionChip = chip || '';
   inp.value=text; autoResize(); updateChar(); handleSend();
 }
 
@@ -1009,10 +1032,10 @@ function handleSend() {
 function resetChat() {
   if(isLoading)return;
   history=[]; activeFlow='general'; plan.reset(); docenteCtx={nombre:'',grado:''};
-  surveyShown=false; sessionChip=''; messageCount=0;
-  $('resumeBtn').classList.remove('visible');
+  surveyShown=false; sessionChip='';
   $('surveyFloatBtn').style.display='';
   $('surveyFloatBtn').classList.remove('visible');
+  messageCount=0; $('resumeBtn').classList.remove('visible');
   msg.querySelectorAll('.msg-row').forEach((r,i)=>{if(i>0)r.remove();});
   if(sug)sug.style.display='flex';
   inp.value=''; autoResize(); updateChar();
@@ -1033,24 +1056,21 @@ $('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitPin();});
 $('pinInput').addEventListener('focus',function(){this.style.borderColor='var(--orange)';});
 $('pinInput').addEventListener('blur',function(){this.style.borderColor='var(--border)';});
 
+// ── Modal keyboard close ─────────────────────────────────────────
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+$('surveyModal').addEventListener('click',e=>{if(e.target===$('surveyModal'))closeModal();});
+
 // ── Event listeners ─────────────────────────────────────────────
 btn.addEventListener('click',handleSend);
 inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();}});
 inp.addEventListener('input',()=>{autoResize();updateChar();});
 inp.addEventListener('focus',()=>{
-  document.querySelector('meta[name=viewport]').setAttribute('content','width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no');
-  if(window.innerWidth<=480){
-    setTimeout(()=>{ const h=document.querySelector('.header'); if(h)h.style.display='none'; msg.scrollTop=msg.scrollHeight; },300);
-  }
-});
-inp.addEventListener('blur',()=>{
-  const h=document.querySelector('.header'); if(h)h.style.display='';
+  document.querySelector('meta[name=viewport]')
+    .setAttribute('content','width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no');
 });
 window.addEventListener('online', ()=>setStatus(true));
 window.addEventListener('offline',()=>setStatus(false));
 setStatus(navigator.onLine);
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
-$('surveyModal').addEventListener('click',e=>{if(e.target===$('surveyModal'))closeModal();});
 </script>
 </body>
 </html>
