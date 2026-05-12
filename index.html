@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="description" content="Aula Clara — Asistente pedagógica para docentes y directivos de primaria en Córdoba">
 <meta name="theme-color" content="#D95F1A">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https://i.imgur.com data:; connect-src https://aulaclara.abfacundotorres.workers.dev https://api.groq.com;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https://i.imgur.com data:; connect-src https://aulaclara.abfacundotorres.workers.dev https://api.groq.com https://script.google.com;">
 <title>Aula Clara — Asistente Pedagógica</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,6 +135,8 @@
     from { opacity: 0; transform: translateX(calc(min(340px, 50vw) - 100% - 14px)) translateY(10px); }
     to   { opacity: 1; transform: translateX(calc(min(340px, 50vw) - 100% - 14px)) translateY(0); }
   }
+  #resumeBtn { bottom: 158px; background: var(--warm-white); border: 2px solid var(--orange); color: var(--orange); }
+  #resumeBtn:hover { background: var(--orange-pale); box-shadow: 0 5px 20px rgba(217,95,26,0.28); }
   #surveyFloatBtn { bottom: 108px; background: var(--orange); border: none; color: #FFF8F0; }
   #surveyFloatBtn:hover { background: var(--orange-hover); box-shadow: 0 5px 20px rgba(217,95,26,0.32); }
 
@@ -197,6 +199,7 @@
     .chip { font-size: 11px; padding: 5px 10px; }
     .toast { bottom: 80px; font-size: 12px; }
     .float-toast { transform: translateX(calc(50vw - 100% - 10px)); font-size: 13px; padding: 11px 18px; }
+    #resumeBtn { bottom: 112px; }
     #surveyFloatBtn { bottom: 64px; }
   }
 </style>
@@ -204,6 +207,11 @@
 <body>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Botón resumen flotante -->
+<button id="resumeBtn" class="float-toast" title="Generar resumen de esta consulta" onclick="triggerResumen()">
+  📋 Resumen
+</button>
 
 <!-- Botón encuesta flotante -->
 <button id="surveyFloatBtn" class="float-toast" onclick="openModal('')" title="¿Te fue útil Clara hoy?">
@@ -386,6 +394,7 @@ const MAX_RETRY        = 2;
 const RETRY_BASE       = 1200;
 const CLIENT_TMOUT     = 33000;
 const HISTORY_LIMIT    = 16;
+const RESUME_THRESHOLD = 4;  // mensajes para mostrar botón resumen
 const SURVEY_THRESHOLD = 5;  // mensajes para mostrar encuesta
 
 // Session ID anónimo — consolida todos los eventos de una sesión
@@ -491,10 +500,23 @@ async function submitSurvey() {
   setTimeout(closeModal, 2200);
 }
 
+function updateResumeBtn() {
+  const showResume = messageCount >= RESUME_THRESHOLD && !isLoading;
+  const showSurvey = messageCount >= SURVEY_THRESHOLD && !surveyShown && !isLoading;
+  $('resumeBtn').classList.toggle('visible', showResume);
+  if (showSurvey) $('surveyFloatBtn').classList.add('visible');
+}
+
 function checkSurveyTrigger() {
-  if (messageCount >= SURVEY_THRESHOLD && !surveyShown && !isLoading) {
-    $('surveyFloatBtn').classList.add('visible');
-  }
+  updateResumeBtn();
+}
+
+async function triggerResumen() {
+  if(isLoading) return;
+  const prevFlow = activeFlow;
+  activeFlow = 'resumen';
+  await sendMessage('Generá un resumen de esta consulta');
+  activeFlow = prevFlow;
 }
 
 // ── isDocumentText ──────────────────────────────────────────────
@@ -988,6 +1010,7 @@ function resetChat() {
   if(isLoading)return;
   history=[]; activeFlow='general'; plan.reset(); docenteCtx={nombre:'',grado:''};
   surveyShown=false; sessionChip=''; messageCount=0;
+  $('resumeBtn').classList.remove('visible');
   $('surveyFloatBtn').style.display='';
   $('surveyFloatBtn').classList.remove('visible');
   msg.querySelectorAll('.msg-row').forEach((r,i)=>{if(i>0)r.remove();});
