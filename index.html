@@ -117,6 +117,74 @@
   .chip:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
   .toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--brown-dark); color: #FFF8F0; padding: 8px 18px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none; z-index: 100; white-space: nowrap; max-width: 90vw; text-align: center; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  /* ── Botón flotante encuesta ── */
+  .float-toast {
+    position: fixed; left: 50%; z-index: 10;
+    display: none; align-items: center; gap: 8px;
+    padding: 12px 22px; border-radius: 24px;
+    font-size: 14px; font-weight: 600;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 3px 16px rgba(217,95,26,0.22);
+    transition: background 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+    transform: translateX(calc(min(340px, 50vw) - 100% - 14px));
+  }
+  .float-toast.visible { display: flex; animation: floatIn 0.25s ease-out forwards; }
+  @keyframes floatIn {
+    from { opacity: 0; transform: translateX(calc(min(340px, 50vw) - 100% - 14px)) translateY(10px); }
+    to   { opacity: 1; transform: translateX(calc(min(340px, 50vw) - 100% - 14px)) translateY(0); }
+  }
+  #surveyFloatBtn { bottom: 108px; background: var(--orange); border: none; color: #FFF8F0; }
+  #surveyFloatBtn:hover { background: var(--orange-hover); box-shadow: 0 5px 20px rgba(217,95,26,0.32); }
+
+  /* ── Modal encuesta ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(61,31,10,0.45); backdrop-filter: blur(2px);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 20px 20px 32px; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  @media (min-height: 600px) { .modal-overlay { align-items: center; padding: 20px; } }
+  .modal-overlay.visible { opacity: 1; pointer-events: all; }
+  .modal-card {
+    background: var(--warm-white); border: 1px solid var(--border);
+    border-radius: 24px; padding: 28px 24px; max-width: 360px; width: 100%;
+    text-align: center; box-shadow: 0 8px 32px rgba(61,31,10,0.14);
+    transform: translateY(12px); transition: transform 0.2s;
+  }
+  .modal-overlay.visible .modal-card { transform: translateY(0); }
+  .modal-title { font-family: 'Fraunces', Georgia, serif; font-size: 1.1rem; font-weight: 600; color: var(--brown-dark); margin-bottom: 6px; }
+  .modal-sub { font-size: 12px; color: var(--brown-light); margin-bottom: 20px; }
+  .stars { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+  .star { font-size: 28px; cursor: pointer; opacity: 0.35; transition: opacity 0.15s, transform 0.1s; user-select: none; }
+  .star:hover, .star.active { opacity: 1; transform: scale(1.15); }
+  .modal-label { font-size: 12px; font-weight: 500; color: var(--brown-mid); margin-bottom: 8px; text-align: left; }
+  .modal-select {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+    border-radius: 12px; font-size: 13px; font-family: 'DM Sans', system-ui, sans-serif;
+    color: var(--brown-dark); background: var(--cream); outline: none;
+    transition: border-color 0.2s; margin-bottom: 20px;
+  }
+  .modal-select:focus { border-color: var(--orange); }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-btn { flex: 1; padding: 11px; border-radius: 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: background 0.15s; border: none; }
+  .modal-btn.primary { background: var(--orange); color: #FFF8F0; }
+  .modal-btn.primary:hover { background: var(--orange-hover); }
+  .modal-btn.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .modal-btn.secondary { background: transparent; color: var(--brown-light); border: 1.5px solid var(--border); }
+  .modal-btn.secondary:hover { background: var(--orange-pale); }
+  .uso-btns { display: flex; gap: 6px; margin-bottom: 20px; }
+  .uso-btn { flex: 1; padding: 8px 4px; border-radius: 10px; font-size: 11px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; border: 1.5px solid var(--border); background: var(--cream); color: var(--brown-dark); transition: all 0.15s; line-height: 1.4; }
+  .uso-btn.active { background: var(--orange); color: #FFF8F0; border-color: var(--orange); }
+  .uso-btn:hover:not(.active) { background: var(--orange-pale); border-color: var(--orange); }
+  .modal-thanks { display: none; padding: 16px 0 4px; }
+  .modal-thanks-icon { font-size: 36px; margin-bottom: 8px; }
+  .modal-thanks p { font-size: 13px; color: var(--brown-light); line-height: 1.5; }
+
+  @supports (height: 100dvh) { html, body { height: 100dvh; } .page { height: 100dvh; } }
+
   @media (max-width: 480px) {
     .page { padding: 8px 8px 0; }
     .header { padding: 10px 13px; border-radius: 16px; }
@@ -128,12 +196,58 @@
     .suggestions { gap: 6px; }
     .chip { font-size: 11px; padding: 5px 10px; }
     .toast { bottom: 80px; font-size: 12px; }
+    .float-toast { transform: translateX(calc(50vw - 100% - 10px)); font-size: 13px; padding: 11px 18px; }
+    #surveyFloatBtn { bottom: 64px; }
   }
 </style>
 </head>
 <body>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Botón encuesta flotante -->
+<button id="surveyFloatBtn" class="float-toast" onclick="openModal('')" title="¿Te fue útil Clara hoy?">
+  ⭐ ¿Te fue útil?
+</button>
+
+<!-- Modal encuesta de satisfacción -->
+<div class="modal-overlay" id="surveyModal" role="dialog" aria-modal="true" aria-label="Encuesta de satisfacción">
+  <div class="modal-card">
+    <div id="surveyForm">
+      <div class="modal-title">¿Te fue útil? 📝</div>
+      <div class="modal-sub">3 preguntas — menos de 15 segundos</div>
+      <div class="stars" id="starsRow" role="group" aria-label="Utilidad del 1 al 5">
+        <span class="star" data-v="1" onclick="setStar(1)" role="button" aria-label="1 estrella">⭐</span>
+        <span class="star" data-v="2" onclick="setStar(2)" role="button" aria-label="2 estrellas">⭐</span>
+        <span class="star" data-v="3" onclick="setStar(3)" role="button" aria-label="3 estrellas">⭐</span>
+        <span class="star" data-v="4" onclick="setStar(4)" role="button" aria-label="4 estrellas">⭐</span>
+        <span class="star" data-v="5" onclick="setStar(5)" role="button" aria-label="5 estrellas">⭐</span>
+      </div>
+      <div class="modal-label">¿Cuánto tiempo te ahorró?</div>
+      <select class="modal-select" id="surveyTiempo">
+        <option value="15">Menos de 15 min</option>
+        <option value="30">30 minutos</option>
+        <option value="60">1 hora</option>
+        <option value="120">Más de 2 horas</option>
+      </select>
+      <div class="modal-label">¿Pudiste usar lo que te generé?</div>
+      <div class="uso-btns" id="usoBtns">
+        <button class="uso-btn" data-v="si" onclick="setUso('si')">✅ Sí, directo</button>
+        <button class="uso-btn" data-v="parcial" onclick="setUso('parcial')">🔧 Lo adapté</button>
+        <button class="uso-btn" data-v="no" onclick="setUso('no')">❌ No me sirvió</button>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn secondary" onclick="closeModal()">Omitir</button>
+        <button class="modal-btn primary" id="surveySubmitBtn" onclick="submitSurvey()" disabled>Enviar</button>
+      </div>
+    </div>
+    <div class="modal-thanks" id="surveyThanks">
+      <div class="modal-thanks-icon">🙌</div>
+      <div class="modal-title">¡Gracias!</div>
+      <p>Tu opinión nos ayuda a mejorar Clara para todos los docentes.</p>
+    </div>
+  </div>
+</div>
 
 <!-- Pantalla de acceso PIN -->
 <div id="pinScreen" style="
@@ -225,11 +339,11 @@
     </div>
 
     <div class="suggestions" id="suggestions">
-      <button class="chip" onclick="setFlow('planificacion_q'); sendSuggestion('Quiero hacer una planificación de clase')">Planificación 📝</button>
-      <button class="chip" onclick="setFlow('plan_anual_p0'); sendSuggestion('Quiero hacer el plan anual')">Plan Anual 📅</button>
-      <button class="chip" onclick="setFlow('boletin'); sendSuggestion('Necesito hacer boletines')">Boletines 📋</button>
-      <button class="chip" onclick="setFlow('adaptacion_q'); sendSuggestion('Necesito una adaptación curricular')">Adaptación 🤝</button>
-      <button class="chip" onclick="setFlow('general'); sendSuggestion('Tengo una consulta')">Consulta libre 💬</button>
+      <button class="chip" onclick="setFlow('planificacion_q'); sendSuggestion('Quiero hacer una planificación de clase','Planificación')">Planificación 📝</button>
+      <button class="chip" onclick="setFlow('plan_anual_p0'); sendSuggestion('Quiero hacer el plan anual','Plan Anual')">Plan Anual 📅</button>
+      <button class="chip" onclick="setFlow('boletin'); sendSuggestion('Necesito hacer boletines','Boletines')">Boletines 📋</button>
+      <button class="chip" onclick="setFlow('adaptacion_q'); sendSuggestion('Necesito una adaptación curricular','Adaptación')">Adaptación 🤝</button>
+      <button class="chip" onclick="setFlow('general'); sendSuggestion('Tengo una consulta','Consulta libre')">Consulta libre 💬</button>
     </div>
 
     <div class="typing-row" id="typingRow">
@@ -266,20 +380,30 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────────────
-const WORKER_URL    = 'https://aulaclara.abfacundotorres.workers.dev';
-const MAX_CHARS     = 2000;
-const MAX_RETRY     = 2;
-const RETRY_BASE    = 1200;
-const CLIENT_TMOUT  = 33000;
-const HISTORY_LIMIT = 16;
+const WORKER_URL       = 'https://aulaclara.abfacundotorres.workers.dev';
+const MAX_CHARS        = 2000;
+const MAX_RETRY        = 2;
+const RETRY_BASE       = 1200;
+const CLIENT_TMOUT     = 33000;
+const HISTORY_LIMIT    = 16;
+const SURVEY_THRESHOLD = 5;  // mensajes para mostrar encuesta
+
+// Session ID anónimo — consolida todos los eventos de una sesión
+const SESSION_ID = Math.random().toString(36).slice(2,10) + Date.now().toString(36);
 
 // ── State ───────────────────────────────────────────────────────
-let history    = [];
-let isLoading  = false;
-let toastTimer = null;
-let sessionPin = null;
-let activeFlow  = 'general';
-let docenteCtx  = { nombre: '', grado: '' }; // contexto del docente — se inyecta en el prompt
+let history      = [];
+let isLoading    = false;
+let toastTimer   = null;
+let sessionPin   = null;
+let activeFlow   = 'general';
+let docenteCtx   = { nombre: '', grado: '' };
+let surveyRating = 0;
+let surveyUso    = '';
+let lastDocTitle = '';
+let messageCount = 0;
+let surveyShown  = false;
+let sessionChip  = '';
 
 // Plan Anual state — accumulates 4 parts
 const plan = {
@@ -302,6 +426,76 @@ const msg = $('messages');
 const inp = $('userInput');
 const btn = $('sendBtn');
 const sug = $('suggestions');
+
+// ── Encuesta ────────────────────────────────────────────────────
+function setStar(n) {
+  surveyRating = n;
+  document.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('active', i < n));
+  $('surveySubmitBtn').disabled = false;
+}
+
+function setUso(v) {
+  surveyUso = v;
+  document.querySelectorAll('.uso-btn').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+}
+
+function openModal(docTitle) {
+  lastDocTitle = docTitle || '';
+  $('surveyFloatBtn').classList.remove('visible');
+  surveyRating = 0; surveyUso = '';
+  document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.uso-btn').forEach(b => b.classList.remove('active'));
+  $('surveySubmitBtn').disabled = true;
+  $('surveyForm').style.display = 'block';
+  $('surveyThanks').style.display = 'none';
+  $('surveyModal').classList.add('visible');
+}
+
+function closeModal() {
+  $('surveyModal').classList.remove('visible');
+  if (!surveyShown && messageCount >= SURVEY_THRESHOLD) {
+    setTimeout(() => {
+      $('surveyFloatBtn').style.display = '';
+      $('surveyFloatBtn').classList.add('visible');
+    }, 3000);
+  }
+}
+
+async function submitSurvey() {
+  const b = $('surveySubmitBtn');
+  b.disabled = true; b.textContent = 'Enviando…';
+  try {
+    await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        _survey:    true,
+        tipo:       'encuesta',
+        timestamp:  new Date().toISOString(),
+        session_id: SESSION_ID,
+        municipio:  sessionPin  || 'demo',
+        flow:       activeFlow,
+        chip_usado: sessionChip || activeFlow,
+        documento:  lastDocTitle,
+        utilidad:   surveyRating,
+        tiempo:     $('surveyTiempo').value,
+        uso:        surveyUso,
+      }),
+    });
+  } catch { /* silencioso */ }
+  surveyShown = true;
+  $('surveyFloatBtn').classList.remove('visible');
+  $('surveyFloatBtn').style.display = 'none';
+  $('surveyForm').style.display = 'none';
+  $('surveyThanks').style.display = 'block';
+  setTimeout(closeModal, 2200);
+}
+
+function checkSurveyTrigger() {
+  if (messageCount >= SURVEY_THRESHOLD && !surveyShown && !isLoading) {
+    $('surveyFloatBtn').classList.add('visible');
+  }
+}
 
 // ── isDocumentText ──────────────────────────────────────────────
 function isDoc(t) {
@@ -523,6 +717,8 @@ async function generateWord(rawContent) {
 function makeDownloadBtn(content, label='⬇️ Descargar Word', cls='download') {
   const b = document.createElement('button');
   b.className=`action-btn ${cls}`; b.innerHTML=label;
+  const titleMatch = content.match(/\[TITULO\]\s*([^\n]+)/);
+  const docTitle = titleMatch ? titleMatch[1].trim() : 'documento';
   b.onclick = async () => {
     if(window._docxError){showToast('Librería Word no disponible.');return;}
     b.innerHTML='⏳ Generando...'; b.disabled=true;
@@ -530,6 +726,22 @@ function makeDownloadBtn(content, label='⬇️ Descargar Word', cls='download')
       await generateWord(content);
       b.innerHTML='✅ Descargado';
       setTimeout(()=>{b.innerHTML=label;b.disabled=false;},3000);
+      // Registrar descarga en métricas
+      try {
+        fetch(WORKER_URL, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            _survey:false, tipo:'evento',
+            timestamp:new Date().toISOString(),
+            session_id:SESSION_ID, municipio:sessionPin||'demo',
+            flow:activeFlow, chip_usado:sessionChip||'',
+            doc_descargado:docTitle,
+            rag_usado:false, rag_chunks:0, model_used:'download',
+          }),
+        });
+      } catch {}
+      // Abrir encuesta después de descarga — solo si no completó
+      if (!surveyShown) setTimeout(()=>openModal(docTitle), 800);
     } catch(e) {
       b.innerHTML='❌ Error'; b.disabled=false;
       showToast(e.message||'Error al generar.');
@@ -659,7 +871,7 @@ async function fetchMsg(message, attempt=0) {
     const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({message, history:historyPayload(), pin:sessionPin, flow:activeFlow, ctx:docenteCtx}),
+      body: JSON.stringify({message, history:historyPayload(), pin:sessionPin, flow:activeFlow, ctx:docenteCtx, chip_usado:sessionChip, session_id:SESSION_ID}),
       signal: ctrl.signal,
     });
     clearTimeout(tmout);
@@ -708,6 +920,8 @@ async function sendMessage(text) {
     history.push(pending);
     history.push({role:'model',parts:[{text:reply}]});
     if (history.length>HISTORY_LIMIT*2) history=history.slice(-HISTORY_LIMIT*2);
+    messageCount++;
+    checkSurveyTrigger();
   } catch(err) {
     $('typingRow').classList.remove('visible');
     const msgs = {
@@ -753,12 +967,11 @@ function setStatus(online) {
 // ── Flow & suggestions ──────────────────────────────────────────
 function setFlow(f) { activeFlow=f; }
 
-function sendSuggestion(text) {
+function sendSuggestion(text, chip) {
   if(isLoading)return;
   if(sug)sug.style.display='none';
   plan.reset();
-  // docenteCtx.nombre persiste — el docente es el mismo entre flujos
-  // solo limpiamos grado porque puede cambiar entre planificaciones
+  sessionChip = chip || '';
   docenteCtx.grado = '';
   inp.value=text; autoResize(); updateChar(); handleSend();
 }
@@ -774,6 +987,9 @@ function handleSend() {
 function resetChat() {
   if(isLoading)return;
   history=[]; activeFlow='general'; plan.reset(); docenteCtx={nombre:'',grado:''};
+  surveyShown=false; sessionChip=''; messageCount=0;
+  $('surveyFloatBtn').style.display='';
+  $('surveyFloatBtn').classList.remove('visible');
   msg.querySelectorAll('.msg-row').forEach((r,i)=>{if(i>0)r.remove();});
   if(sug)sug.style.display='flex';
   inp.value=''; autoResize(); updateChar();
@@ -799,12 +1015,19 @@ btn.addEventListener('click',handleSend);
 inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();}});
 inp.addEventListener('input',()=>{autoResize();updateChar();});
 inp.addEventListener('focus',()=>{
-  document.querySelector('meta[name=viewport]')
-    .setAttribute('content','width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no');
+  document.querySelector('meta[name=viewport]').setAttribute('content','width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no');
+  if(window.innerWidth<=480){
+    setTimeout(()=>{ const h=document.querySelector('.header'); if(h)h.style.display='none'; msg.scrollTop=msg.scrollHeight; },300);
+  }
+});
+inp.addEventListener('blur',()=>{
+  const h=document.querySelector('.header'); if(h)h.style.display='';
 });
 window.addEventListener('online', ()=>setStatus(true));
 window.addEventListener('offline',()=>setStatus(false));
 setStatus(navigator.onLine);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+$('surveyModal').addEventListener('click',e=>{if(e.target===$('surveyModal'))closeModal();});
 </script>
 </body>
 </html>
