@@ -212,6 +212,33 @@
   .modal-thanks-icon { font-size: 36px; margin-bottom: 8px; }
   .modal-thanks p { font-size: 13px; color: var(--brown-light); line-height: 1.5; }
 
+  /* ── Onboarding ── */
+  .onboarding-overlay {
+    position: fixed; inset: 0; z-index: 400;
+    background: rgba(61,31,10,0.55); backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .onboarding-overlay.visible { opacity: 1; pointer-events: all; }
+  .onboarding-card {
+    background: var(--warm-white); border: 1px solid var(--border);
+    border-radius: 28px; padding: 32px 28px 24px; max-width: 380px; width: 100%;
+    text-align: center; box-shadow: 0 12px 48px rgba(61,31,10,0.18);
+    transform: translateY(16px); transition: transform 0.3s;
+  }
+  .onboarding-overlay.visible .onboarding-card { transform: translateY(0); }
+  .ob-steps { display: flex; justify-content: center; gap: 6px; margin-bottom: 28px; }
+  .ob-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: all 0.2s; }
+  .ob-dot.active { background: var(--orange); width: 22px; border-radius: 4px; }
+  .ob-icon { font-size: 48px; margin-bottom: 16px; line-height: 1; }
+  .ob-title { font-family: 'Fraunces', Georgia, serif; font-size: 1.2rem; font-weight: 600; color: var(--brown-dark); margin-bottom: 10px; }
+  .ob-text { font-size: 13px; color: var(--brown-light); line-height: 1.6; margin-bottom: 28px; min-height: 56px; }
+  .ob-actions { display: flex; gap: 8px; }
+  .ob-btn-skip { flex: 1; padding: 11px; border-radius: 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; background: transparent; color: var(--brown-light); border: 1.5px solid var(--border); transition: background 0.15s; }
+  .ob-btn-skip:hover { background: var(--orange-pale); }
+  .ob-btn-next { flex: 2; padding: 11px; border-radius: 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; background: var(--orange); color: #FFF8F0; border: none; transition: background 0.15s; }
+  .ob-btn-next:hover { background: var(--orange-hover); }
+
   @media (max-width: 480px) {
     .page { padding: 8px 8px 0; }
     .header { padding: 10px 13px; border-radius: 16px; }
@@ -232,6 +259,24 @@
 <body>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Onboarding -->
+<div class="onboarding-overlay" id="onboardingOverlay">
+  <div class="onboarding-card">
+    <div class="ob-steps">
+      <div class="ob-dot active" id="obDot0"></div>
+      <div class="ob-dot" id="obDot1"></div>
+      <div class="ob-dot" id="obDot2"></div>
+    </div>
+    <div class="ob-icon" id="obIcon">📝</div>
+    <div class="ob-title" id="obTitle">Planificá en minutos</div>
+    <div class="ob-text" id="obText">Contame el grado, área y contenido. Clara te arma la planificación completa con actividades concretas, listas para usar en el aula.</div>
+    <div class="ob-actions">
+      <button class="ob-btn-skip" onclick="closeOnboarding()">Saltear</button>
+      <button class="ob-btn-next" id="obNextBtn" onclick="obNext()">Siguiente →</button>
+    </div>
+  </div>
+</div>
 
 <!-- Botón encuesta flotante -->
 <button id="surveyFloatBtn" class="float-toast" onclick="openModal('')" title="¿Te fue útil Clara hoy?">
@@ -414,6 +459,17 @@
 // ── Config ──────────────────────────────────────────────────────
 const WORKER_URL    = 'https://aulaclara.abfacundotorres.workers.dev';
 const SESSION_ID    = Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+// Device ID: permanente por dispositivo, independiente del PIN
+// Permite que distintos docentes en el mismo dispositivo tengan historial separado
+const DEVICE_ID = (() => {
+  try {
+    let id = localStorage.getItem('clara_device_id');
+    if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('clara_device_id', id); }
+    return id;
+  } catch { return 'anon'; }
+})();
+// STORAGE_KEY incluye DEVICE_ID — historial por dispositivo, no por PIN
+const STORAGE_KEY = 'clara_s_v2_' + DEVICE_ID;
 const MAX_CHARS     = 2000;
 const MAX_RETRY     = 2;
 const RETRY_BASE    = 1200;
@@ -664,6 +720,80 @@ async function generateWord(rawContent) {
   setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
 
+// ── PDF generation ─────────────────────────────────────────────
+function generatePDF(rawContent) {
+  // Convierte el documento a HTML limpio y usa print para generar PDF
+  const docs = parseDoc(rawContent.replace(/\[PERIODO_\d\]\s*/g,''));
+  if (!docs.length) throw new Error('Sin contenido para generar.');
+
+  const titleMatch = rawContent.match(/\[TITULO\]\s*([^\n]+)/);
+  const title = titleMatch ? titleMatch[1].trim() : 'Aula Clara';
+  // Fix 4: filename eliminado — generatePDF abre ventana print, no descarga con nombre
+
+  const escH = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  let html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>${escH(title)}</title>
+<style>
+  @page { margin: 2cm; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  body { font-family: Arial, sans-serif; font-size: 11pt; color: #3D1F0A; line-height: 1.6; }
+  h1 { font-size: 16pt; color: #3D1F0A; border-bottom: 2px solid #D95F1A; padding-bottom: 6px; margin-bottom: 4px; }
+  .generated { font-size: 9pt; color: #C47A3A; font-style: italic; margin-bottom: 24px; }
+  h2 { font-size: 12pt; color: #D95F1A; margin-top: 18px; margin-bottom: 6px; border-left: 3px solid #D95F1A; padding-left: 8px; }
+  h3 { font-size: 11pt; color: #7A3B10; margin-top: 12px; margin-bottom: 4px; }
+  .field { margin: 4px 0; } .field strong { color: #3D1F0A; }
+  p { margin: 4px 0 8px; }
+  ul { margin: 4px 0 8px; padding-left: 18px; }
+  li { margin-bottom: 3px; }
+  .obs { margin-top: 32px; border-top: 1px solid #EDD5B0; padding-top: 12px; }
+  .obs-label { font-weight: bold; color: #C47A3A; font-size: 10pt; margin-bottom: 8px; }
+  .obs-line { border-bottom: 1px solid #EDD5B0; height: 20px; margin-bottom: 8px; }
+  .footer { margin-top: 24px; font-size: 8pt; color: #C47A3A; text-align: center; border-top: 1px solid #EDD5B0; padding-top: 8px; }
+</style></head><body>`;
+
+  const renderItem = (item) => {
+    if (item.type === 'subsection') {
+      html += `<h3>${escH(item.data.title)}</h3>`;
+      item.data.items.forEach(renderItem);
+    } else if (item.type === 'field') {
+      const p = item.text.split(':');
+      html += `<p class="field"><strong>${escH(p[0])}:</strong> ${escH(p.slice(1).join(':').trim())}</p>`;
+    } else if (item.type === 'text') {
+      html += `<p>${escH(item.text)}</p>`;
+    } else if (item.type === 'bullet') {
+      html += `<li>${escH(item.text)}</li>`;
+    }
+  };
+
+  docs.forEach((d, i) => {
+    if (i > 0) html += '<div style="page-break-before:always"></div>';
+    html += `<h1>${escH(d.titulo)}</h1>`;
+    html += `<div class="generated">Generado por Aula Clara · ${new Date().toLocaleDateString('es-AR')}</div>`;
+    d.sections.forEach(sec => {
+      html += `<h2>${escH(sec.title)}</h2>`;
+      let inList = false;
+      sec.items.forEach(item => {
+        if (item.type === 'bullet' && !inList) { html += '<ul>'; inList = true; }
+        if (item.type !== 'bullet' && inList) { html += '</ul>'; inList = false; }
+        renderItem(item);
+      });
+      if (inList) html += '</ul>';
+    });
+    html += `<div class="obs"><div class="obs-label">Observaciones:</div>
+      <div class="obs-line"></div><div class="obs-line"></div><div class="obs-line"></div></div>`;
+  });
+  html += `<div class="footer">Aula Clara · aulaclara.com.ar</div></body></html>`;
+
+  // Abrir en nueva ventana y disparar print dialog
+  const w = window.open('', '_blank');
+  if (!w) throw new Error('Bloqueador de popups activo. Permitir popups para este sitio.');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); }, 400);
+}
+
 // ── Encuesta ────────────────────────────────────────────────────
 function setStar(n) {
   surveyRating = n;
@@ -690,11 +820,15 @@ function openModal(docTitle) {
 
 function closeModal() {
   $('surveyModal').classList.remove('visible');
+  // Fix 9: solo re-mostrar si el docente NO envió la encuesta y no la vio antes
+  // surveyShown se setea true solo al enviar — omitir no cuenta como "visto"
   if (!surveyShown && messageCount >= SURVEY_THRESHOLD) {
     setTimeout(() => {
-      $('surveyFloatBtn').style.display = '';
-      $('surveyFloatBtn').classList.add('visible');
-    }, 3000);
+      if (!surveyShown) {  // re-check en el timeout por si envió mientras tanto
+        $('surveyFloatBtn').style.display = '';
+        $('surveyFloatBtn').classList.add('visible');
+      }
+    }, 4000);
   }
 }
 
@@ -750,49 +884,84 @@ async function triggerResumen() {
   }
 }
 
-// ── Download button ─────────────────────────────────────────────
-function makeDownloadBtn(content, label='⬇️ Descargar Word', cls='download') {
-  const b = document.createElement('button');
-  b.className=`action-btn ${cls}`; b.innerHTML=label;
+// ── Download buttons ────────────────────────────────────────────
+function logDownload(docTitle) {
+  // Fix 10: fire-and-forget con catch explícito — no bloquea UI
+  fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      _survey: false, tipo: 'evento',
+      timestamp: new Date().toISOString(),
+      session_id: SESSION_ID, municipio: sessionPin || 'demo',
+      flow: activeFlow, chip_usado: sessionChip || '',
+      documento: docTitle,  // Fix 7: campo alineado con AppScript (documento, no doc_descargado)
+    }),
+  }).catch(() => {}); // silencioso — no crítico
+  if (!surveyShown) setTimeout(() => openModal(docTitle), 800);
+}
+
+function makeDownloadBtn(content, label='⬇️ Word', cls='download') {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;';
+
   const titleMatch = content.match(/\[TITULO\]\s*([^\n]+)/);
   const docTitle = titleMatch ? titleMatch[1].trim() : 'documento';
-  b.onclick = async () => {
-    if(window._docxError){showToast('Librería Word no disponible.');return;}
-    b.innerHTML='⏳ Generando...'; b.disabled=true;
+
+  // Fix 3: cls se aplica a ambos botones (download-full para Plan Anual completo)
+  const isSpecial = cls === 'download-full';
+  const btnStyle  = isSpecial ? 'background:var(--green);border-color:var(--green);' : '';
+  const pdfStyle  = isSpecial ? 'background:#2d6624;border-color:#2d6624;' : 'background:#5B6C3A;border-color:#5B6C3A;';
+
+  // Botón Word
+  const bw = document.createElement('button');
+  bw.className = `action-btn ${cls}`;
+  if (btnStyle) bw.style.cssText = btnStyle;
+  bw.innerHTML = label;
+  bw.onclick = async () => {
+    if (window._docxError) { showToast('Librería Word no disponible.'); return; }
+    bw.innerHTML = '⏳...'; bw.disabled = true;
     try {
       await generateWord(content);
-      b.innerHTML='✅ Descargado';
-      setTimeout(()=>{b.innerHTML=label;b.disabled=false;},3000);
-      // Registrar descarga en métricas
-      try {
-        fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            _survey: false,
-            tipo: 'evento', timestamp: new Date().toISOString(),
-            session_id: SESSION_ID, municipio: sessionPin || 'demo',
-            flow: activeFlow, chip_usado: sessionChip || '',
-            doc_descargado: docTitle,
-            rag_usado: false, rag_chunks: 0, rag_error: false,
-            model_used: 'download',
-          }),
-        });
-      } catch {}
-      // Abrir encuesta después de descarga — solo si no completó
-      if (!surveyShown) setTimeout(()=>openModal(docTitle), 800);
+      bw.innerHTML = '✅ Word';
+      setTimeout(() => { bw.innerHTML = label; bw.disabled = false; }, 3000);
+      logDownload(docTitle);
     } catch(e) {
-      b.innerHTML='❌ Error'; b.disabled=false;
-      showToast(e.message||'Error al generar.');
+      bw.innerHTML = '❌'; bw.disabled = false;
+      showToast(e.message || 'Error al generar Word.');
     }
   };
-  return b;
+
+  // Botón PDF — Fix 4: filename no se usa en generatePDF (la función abre ventana)
+  const bp = document.createElement('button');
+  bp.className = 'action-btn download';
+  bp.style.cssText = pdfStyle;
+  bp.innerHTML = '📄 PDF';
+  bp.onclick = () => {
+    bp.innerHTML = '⏳...'; bp.disabled = true;
+    try {
+      generatePDF(content);
+      bp.innerHTML = '✅ PDF';
+      setTimeout(() => { bp.innerHTML = '📄 PDF'; bp.disabled = false; }, 3000);
+      logDownload(docTitle);
+    } catch(e) {
+      bp.innerHTML = '❌'; bp.disabled = false;
+      showToast(e.message || 'Error al generar PDF.');
+    }
+  };
+
+  wrap.appendChild(bw);
+  wrap.appendChild(bp);
+  return wrap;
 }
 
 // ── appendMessage ───────────────────────────────────────────────
-function appendMessage(text, role) {
-  // Plan Anual accumulation + flow advance
-  if (role==='bot') {
+// appendMessageSafe: alias sin side-effects para restaurar historial
+function appendMessageSafe(text, role) { appendMessage(text, role, true); }
+
+function appendMessage(text, role, noSideEffects = false) {
+  // Plan Anual accumulation + flow advance — suprimido durante restauración
+  if (role==='bot' && !noSideEffects) {
     if (text.includes('[PERIODO_0]')) {
       plan.p0=text; updateProgress(0); activeFlow='plan_anual_p1';
       setTimeout(() => { if (!isLoading) sendMessage('Generá el período 1'); }, 800);
@@ -965,6 +1134,7 @@ async function sendMessage(text) {
     if (history.length>HISTORY_LIMIT*2) history=history.slice(-HISTORY_LIMIT*2);
     messageCount++;
     updateResumeBtn();
+    saveSession();
   } catch(err) {
     $('typingRow').classList.remove('visible');
     const msgs = {
@@ -1032,6 +1202,7 @@ function resetChat() {
   if(isLoading)return;
   history=[]; activeFlow='general'; plan.reset(); docenteCtx={nombre:'',grado:''};
   surveyShown=false; sessionChip='';
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
   $('surveyFloatBtn').style.display='';
   $('surveyFloatBtn').classList.remove('visible');
   messageCount=0; $('resumeBtn').classList.remove('visible');
@@ -1039,6 +1210,112 @@ function resetChat() {
   if(sug)sug.style.display='flex';
   inp.value=''; autoResize(); updateChar();
   showToast('Nueva consulta iniciada.');
+}
+
+// ── Onboarding ──────────────────────────────────────────────────
+const OB_STORAGE_KEY = 'clara_ob_done_v1';
+const OB_SLIDES = [
+  {
+    icon: '📝',
+    title: 'Planificá en minutos',
+    text:  'Contame el grado, área y contenido. Clara te arma la planificación completa con actividades concretas, listas para usar en el aula.',
+  },
+  {
+    icon: '📅',
+    title: 'Plan Anual completo',
+    text:  'Tres períodos, contenidos organizados según el DC de Córdoba. Todo descargable en Word o PDF para presentar cuando quieras.',
+  },
+  {
+    icon: '🤝',
+    title: 'Adaptaciones e informes',
+    text:  'Adaptaciones curriculares con enfoque DUA, boletines de evaluación y más. Todo personalizado para tu grupo y descargable al instante.',
+  },
+];
+let obStep = 0;
+
+function showOnboarding() {
+  // Solo la primera vez por dispositivo
+  try { if (localStorage.getItem(OB_STORAGE_KEY)) return; } catch {}
+  obStep = 0;
+  renderObSlide();
+  $('onboardingOverlay').classList.add('visible');
+}
+
+function renderObSlide() {
+  const s = OB_SLIDES[obStep];
+  $('obIcon').textContent  = s.icon;
+  $('obTitle').textContent = s.title;
+  $('obText').textContent  = s.text;
+  $('obNextBtn').textContent = obStep < OB_SLIDES.length - 1 ? 'Siguiente →' : '¡Empezar! 🎉';
+  OB_SLIDES.forEach((_, i) => {
+    const dot = $('obDot' + i);
+    if (dot) dot.classList.toggle('active', i === obStep);
+  });
+}
+
+function obNext() {
+  if (obStep < OB_SLIDES.length - 1) {
+    obStep++;
+    renderObSlide();
+  } else {
+    closeOnboarding();
+  }
+}
+
+function closeOnboarding() {
+  $('onboardingOverlay').classList.remove('visible');
+  try { localStorage.setItem(OB_STORAGE_KEY, '1'); } catch {}
+}
+
+// ── Historial localStorage ──────────────────────────────────────
+function saveSession() {
+  if (!sessionPin) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      // No guardar el PIN — el key ya es por dispositivo
+      history:     history.slice(-HISTORY_LIMIT),
+      activeFlow,
+      docenteCtx,
+      sessionChip,
+      messageCount,
+      surveyShown,
+      savedAt:     Date.now(),
+    }));
+  } catch { /* storage lleno o bloqueado — ignorar silenciosamente */ }
+}
+
+function restoreSession() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    // Sesión válida si tiene menos de 12hs — sin validación de PIN (key ya es por dispositivo)
+    if ((Date.now() - s.savedAt) > 12 * 60 * 60 * 1000) {
+      localStorage.removeItem(STORAGE_KEY);
+      return false;
+    }
+    history      = Array.isArray(s.history) ? s.history : [];
+    activeFlow   = s.activeFlow  || 'general';
+    docenteCtx   = s.docenteCtx  || { nombre: '', grado: '' };
+    sessionChip  = s.sessionChip || '';
+    messageCount = s.messageCount || 0;
+    surveyShown  = s.surveyShown  || false;
+    return history.length > 0;
+  } catch { return false; }
+}
+
+function renderRestoredHistory() {
+  if (!history.length) return;
+  if (sug) sug.style.display = 'none';
+  // Fix 1+5: flag para suprimir side-effects (plan anual, flow advance)
+  // durante la restauración — solo renderizamos, no ejecutamos lógica
+  const restoring = true;
+  history.forEach(t => {
+    const role = t.role === 'user' ? 'user' : 'bot';
+    appendMessageSafe(t.parts[0].text, role, restoring);
+  });
+  updateResumeBtn();
+  showToast('✨ Continuando tu última sesión', 3000);
 }
 
 // ── PIN ─────────────────────────────────────────────────────────
@@ -1049,6 +1326,13 @@ function submitPin() {
   sessionPin=pin;
   $('pinScreen').style.display='none';
   $('mainPage').style.display='flex';
+  // Intentar restaurar sesión anterior
+  if (restoreSession()) {
+    renderRestoredHistory();
+  } else {
+    // Mostrar onboarding solo si no hay sesión que restaurar
+    showOnboarding();
+  }
   inp.focus();
 }
 $('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitPin();});
