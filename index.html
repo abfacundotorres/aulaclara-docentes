@@ -254,6 +254,77 @@
     #resumeBtn { bottom: 112px; }
     #surveyFloatBtn { bottom: 64px; }
   }
+
+  /* ── Dashboard ── */
+  #dashboardPage { display:none; min-height:100vh; background:#0D0A07; color:#F5ECD8; font-family:'DM Sans',system-ui,sans-serif; overflow-y:auto; }
+  #dashboardPage::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat:repeat; background-size:200px; opacity:0.6; }
+  .d-wrap { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:36px 24px 80px; }
+  .d-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:40px; flex-wrap:wrap; gap:16px; }
+  .d-logo { display:flex; align-items:center; gap:14px; }
+  .d-logo-badge { width:46px; height:46px; border-radius:14px; background:linear-gradient(135deg,#E06820,#E8A830); display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 20px rgba(224,104,32,0.4); }
+  .d-logo h1 { font-family:'Fraunces',Georgia,serif; font-size:1.3rem; font-weight:800; letter-spacing:-0.02em; }
+  .d-logo p { font-size:11px; color:rgba(245,236,216,0.35); margin-top:2px; letter-spacing:0.08em; text-transform:uppercase; }
+  .d-top-right { display:flex; align-items:center; gap:10px; }
+  .d-last { font-size:11px; color:rgba(245,236,216,0.35); font-family:'DM Mono',monospace; }
+  .d-btn { padding:7px 16px; border-radius:10px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:all 0.15s; }
+  .d-btn-refresh { background:#1E1915; border:1px solid rgba(237,213,176,0.18); color:rgba(245,236,216,0.55); display:flex; align-items:center; gap:6px; }
+  .d-btn-refresh:hover { border-color:#E06820; color:#F28C4E; }
+  .d-btn-refresh.loading .d-ri { animation:dspin 0.8s linear infinite; display:inline-block; }
+  @keyframes dspin { to { transform:rotate(360deg); } }
+  .d-btn-exit { background:transparent; border:1px solid rgba(237,213,176,0.10); color:rgba(245,236,216,0.35); }
+  .d-btn-exit:hover { border-color:#B91C1C; color:#FCA5A5; }
+  .d-err { background:rgba(185,28,28,0.12); border:1px solid rgba(185,28,28,0.3); border-radius:12px; padding:12px 16px; font-size:13px; color:#FCA5A5; margin-bottom:20px; display:none; }
+  .d-err.show { display:block; }
+  .d-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:24px; }
+  .d-kpi { background:#161210; border:1px solid rgba(237,213,176,0.10); border-radius:18px; padding:22px 20px; position:relative; overflow:hidden; }
+  .d-kpi::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--da,#E06820); }
+  .d-kpi-label { font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(245,236,216,0.35); margin-bottom:8px; }
+  .d-kpi-val { font-family:'Fraunces',Georgia,serif; font-size:2.2rem; font-weight:800; line-height:1; margin-bottom:5px; }
+  .d-kpi-sub { font-size:11px; color:rgba(245,236,216,0.35); }
+  .d-kpi-icon { position:absolute; top:16px; right:16px; font-size:20px; opacity:0.18; }
+  .d-row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  .d-card { background:#161210; border:1px solid rgba(237,213,176,0.10); border-radius:18px; padding:22px; }
+  .d-card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(245,236,216,0.35); margin-bottom:18px; }
+  .d-bar-list { display:flex; flex-direction:column; gap:9px; }
+  .d-bar-row { display:flex; align-items:center; gap:9px; }
+  .d-bar-lbl { font-size:11px; color:rgba(245,236,216,0.55); min-width:100px; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .d-bar-track { flex:1; height:7px; background:#1E1915; border-radius:4px; overflow:hidden; }
+  .d-bar-fill { height:100%; border-radius:4px; transition:width 0.7s cubic-bezier(0.16,1,0.3,1); }
+  .d-bar-n { font-family:'DM Mono',monospace; font-size:10px; color:rgba(245,236,216,0.35); min-width:24px; text-align:right; }
+  .d-donut-wrap { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .d-legend { display:flex; flex-direction:column; gap:7px; }
+  .d-legend-item { display:flex; align-items:center; gap:7px; font-size:11px; color:rgba(245,236,216,0.55); }
+  .d-legend-dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
+  .d-legend-val { font-family:'DM Mono',monospace; font-size:10px; color:rgba(245,236,216,0.35); margin-left:auto; padding-left:10px; }
+  .d-stars { display:flex; flex-direction:column; gap:7px; }
+  .d-star-row { display:flex; align-items:center; gap:8px; }
+  .d-star-lbl { font-size:11px; color:#F5C862; min-width:52px; }
+  .d-star-track { flex:1; height:7px; background:#1E1915; border-radius:4px; overflow:hidden; }
+  .d-star-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,#E8A830,#F5C862); transition:width 0.7s cubic-bezier(0.16,1,0.3,1); }
+  .d-star-pct { font-family:'DM Mono',monospace; font-size:10px; color:rgba(245,236,216,0.35); min-width:30px; text-align:right; }
+  .d-tl-bars { display:flex; align-items:flex-end; gap:3px; height:72px; }
+  .d-tl-bar { flex:1; background:#E06820; border-radius:3px 3px 0 0; min-height:3px; transition:height 0.5s cubic-bezier(0.16,1,0.3,1); opacity:0.8; }
+  .d-tl-bar:hover { opacity:1; }
+  .d-tl-labels { display:flex; gap:3px; margin-top:5px; }
+  .d-tl-lbl { flex:1; font-family:'DM Mono',monospace; font-size:9px; color:rgba(245,236,216,0.3); text-align:center; overflow:hidden; }
+  .d-table-wrap { overflow-x:auto; }
+  .d-table { width:100%; border-collapse:collapse; font-size:11px; }
+  .d-table thead th { font-size:10px; text-transform:uppercase; letter-spacing:0.07em; color:rgba(245,236,216,0.35); padding:7px 10px; text-align:left; border-bottom:1px solid rgba(237,213,176,0.10); }
+  .d-table tbody td { padding:9px 10px; border-bottom:1px solid rgba(237,213,176,0.07); color:rgba(245,236,216,0.55); font-family:'DM Mono',monospace; }
+  .d-table tbody tr:last-child td { border-bottom:none; }
+  .d-table tbody tr:hover td { background:#1E1915; }
+  .d-pill { display:inline-block; padding:2px 7px; border-radius:20px; font-size:10px; font-weight:600; font-family:'DM Sans',sans-serif; }
+  .d-pill-g { background:rgba(90,158,64,0.15); color:#7DC45E; border:1px solid rgba(90,158,64,0.25); }
+  .d-pill-a { background:rgba(232,168,48,0.15); color:#F5C862; border:1px solid rgba(232,168,48,0.25); }
+  .d-pill-r { background:rgba(185,28,28,0.15); color:#FCA5A5; border:1px solid rgba(185,28,28,0.25); }
+  .d-empty { text-align:center; padding:32px 16px; }
+  .d-empty-icon { font-size:30px; margin-bottom:8px; opacity:0.3; }
+  .d-empty-text { font-size:11px; color:rgba(245,236,216,0.35); }
+  @media (max-width:640px) {
+    .d-row2 { grid-template-columns:1fr; }
+    .d-wrap { padding:20px 12px 60px; }
+    .d-kpi-val { font-size:1.8rem; }
+  }
 </style>
 </head>
 <body>
@@ -323,6 +394,55 @@
       <div class="modal-thanks-icon">🙌</div>
       <div class="modal-title">¡Gracias!</div>
       <p>Tu opinión nos ayuda a mejorar Clara para todos los docentes.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Dashboard municipio -->
+<div id="dashboardPage">
+  <div class="d-wrap">
+    <div class="d-top">
+      <div class="d-logo">
+        <div class="d-logo-badge">📊</div>
+        <div>
+          <h1>Panel de uso · Clara</h1>
+          <p>Aula Clara — Municipio de Jesús María</p>
+        </div>
+      </div>
+      <div class="d-top-right">
+        <span class="d-last" id="dLastUpdate">Cargando…</span>
+        <button class="d-btn d-btn-refresh" id="dRefreshBtn" onclick="dLoadData()">
+          <span class="d-ri">↺</span> Actualizar
+        </button>
+        <button class="d-btn d-btn-exit" onclick="dExit()">Salir</button>
+      </div>
+    </div>
+
+    <div class="d-err" id="dErr"></div>
+
+    <div class="d-kpi-grid">
+      <div class="d-kpi" style="--da:#E06820"><div class="d-kpi-icon">📋</div><div class="d-kpi-label">Encuestas completadas</div><div class="d-kpi-val" id="dKpiTotal">—</div><div class="d-kpi-sub" id="dKpiTotalSub">Sin datos</div></div>
+      <div class="d-kpi" style="--da:#E8A830"><div class="d-kpi-icon">⭐</div><div class="d-kpi-label">Utilidad promedio</div><div class="d-kpi-val" id="dKpiUtil">—</div><div class="d-kpi-sub" id="dKpiUtilSub">Escala 1–5</div></div>
+      <div class="d-kpi" style="--da:#5A9E40"><div class="d-kpi-icon">✅</div><div class="d-kpi-label">Usaron sin adaptar</div><div class="d-kpi-val" id="dKpiSi">—</div><div class="d-kpi-sub" id="dKpiSiSub">Uso directo</div></div>
+      <div class="d-kpi" style="--da:#7B6FD4"><div class="d-kpi-icon">⏱️</div><div class="d-kpi-label">Tiempo ahorrado est.</div><div class="d-kpi-val" id="dKpiTiempo">—</div><div class="d-kpi-sub" id="dKpiTiempoSub">Horas totales</div></div>
+    </div>
+
+    <div class="d-row2">
+      <div class="d-card"><div class="d-card-title">Herramientas más usadas</div><div class="d-bar-list" id="dChips"><div class="d-empty"><div class="d-empty-icon">📊</div><div class="d-empty-text">Sin datos</div></div></div></div>
+      <div class="d-card"><div class="d-card-title">¿Pudieron usar el documento?</div><div class="d-donut-wrap" id="dUso"><div class="d-empty"><div class="d-empty-icon">🍩</div><div class="d-empty-text">Sin datos</div></div></div></div>
+    </div>
+    <div class="d-row2">
+      <div class="d-card"><div class="d-card-title">Satisfacción docente</div><div class="d-stars" id="dStars"><div class="d-empty"><div class="d-empty-icon">⭐</div><div class="d-empty-text">Sin datos</div></div></div></div>
+      <div class="d-card"><div class="d-card-title">Actividad últimos 14 días</div><div class="d-tl-bars" id="dTlBars"></div><div class="d-tl-labels" id="dTlLabels"></div></div>
+    </div>
+    <div class="d-card" style="margin-top:14px;">
+      <div class="d-card-title">Últimas 20 respuestas</div>
+      <div class="d-table-wrap">
+        <table class="d-table">
+          <thead><tr><th>Fecha</th><th>Herramienta</th><th>Utilidad</th><th>Tiempo</th><th>Resultado</th></tr></thead>
+          <tbody id="dTableBody"><tr><td colspan="5" style="text-align:center;padding:28px;color:rgba(245,236,216,0.3)">Cargando…</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -458,6 +578,8 @@
 <script>
 // ── Config ──────────────────────────────────────────────────────
 const WORKER_URL    = 'https://aulaclara.abfacundotorres.workers.dev';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpFGqzfB6q60M5Szx8vFBAQjzQmXLyJ8FTZgSaL6vUQ2rQ5O37pTLpNh3A2slqH1UX/exec';
+const DASHBOARD_PIN   = 'PIOLEON.DATOS';  // ← cambiá por el PIN real del municipio
 const SESSION_ID    = Math.random().toString(36).slice(2,10) + Date.now().toString(36);
 // Device ID: permanente por dispositivo, independiente del PIN
 // Permite que distintos docentes en el mismo dispositivo tengan historial separado
@@ -473,7 +595,7 @@ const STORAGE_KEY = 'clara_s_v2_' + DEVICE_ID;
 const MAX_CHARS     = 2000;
 const MAX_RETRY     = 2;
 const RETRY_BASE    = 1200;
-const CLIENT_TMOUT  = 33000;
+const CLIENT_TMOUT  = 55000;  // 55s: cubre Groq(25s) + fallback Gemini(22s) + overhead RAG
 const HISTORY_LIMIT = 16;
 const RESUME_THRESHOLD = 4; // mensajes mínimos para mostrar botón resumen
 const SURVEY_THRESHOLD  = 5; // mensajes para mostrar botón encuesta
@@ -1098,10 +1220,12 @@ async function fetchMsg(message, attempt=0) {
     clearTimeout(tmout);
     if (err.fatal) throw err;
     if (!navigator.onLine) throw Object.assign(new Error('offline'),{fatal:true});
-    if (attempt<MAX_RETRY && (err.name==='AbortError'||err.message?.startsWith('http_5'))) {
-      showToast(`Reintentando… (${attempt+1}/${MAX_RETRY})`);
-      await new Promise(r=>setTimeout(r,RETRY_BASE*Math.pow(2,attempt)));
-      return fetchMsg(message,attempt+1);
+    // Retry silencioso en timeout o error 5xx — sin mostrar mensaje al docente
+    if (attempt < MAX_RETRY && (err.name==='AbortError' || err.message?.startsWith('http_5') || err.message==='fetch_failed')) {
+      // Solo mostrar toast desde el 2do intento — el primero es invisible
+      if (attempt > 0) showToast(`Reintentando… (${attempt+1}/${MAX_RETRY})`);
+      await new Promise(r=>setTimeout(r, RETRY_BASE * Math.pow(2, attempt)));
+      return fetchMsg(message, attempt+1);
     }
     throw err;
   }
@@ -1117,10 +1241,10 @@ async function sendMessage(text) {
   msg.scrollTop=msg.scrollHeight;
 
   let loadTimer = null;
-  if (activeFlow.startsWith('plan_anual')) loadTimer=setTimeout(()=>showToast('Clara está armando el plan…',15000),2500);
-  else if (activeFlow==='boletin')         loadTimer=setTimeout(()=>showToast('Clara está redactando el informe…',15000),2500);
-  else if (activeFlow==='adaptacion')      loadTimer=setTimeout(()=>showToast('Clara está preparando la adaptación…',15000),2500);
-  else if (activeFlow==='planificacion')   loadTimer=setTimeout(()=>showToast('Clara está armando la planificación…',15000),2500);
+  if (activeFlow.startsWith('plan_anual')) loadTimer=setTimeout(()=>showToast('Clara está armando el plan… puede tardar hasta 30s ☕',40000),1000);
+  else if (activeFlow==='boletin')         loadTimer=setTimeout(()=>showToast('Clara está redactando el informe…',20000),1000);
+  else if (activeFlow==='adaptacion')      loadTimer=setTimeout(()=>showToast('Clara está preparando la adaptación… puede tardar hasta 40s ☕',50000),1000);
+  else if (activeFlow==='planificacion')   loadTimer=setTimeout(()=>showToast('Clara está armando la planificación…',20000),1000);
 
   extractDocenteCtx(text);
   const pending = {role:'user',parts:[{text}]};
@@ -1141,7 +1265,9 @@ async function sendMessage(text) {
       rate_limit: 'Demasiadas consultas seguidas. Esperá un minuto.',
       offline:    'Sin conexión a internet. Revisá tu red.',
     };
-    appendMessage(msgs[err.message]||(err.name==='AbortError'?'Tardó demasiado. Intentá de nuevo.':err.message?.length<120?err.message:'Problema técnico. Intentá de nuevo.'),'bot');
+    const errText = msgs[err.message]
+      || (err.name==='AbortError' ? 'Clara tardó demasiado en responder. El servicio tiene mucha demanda — intentá de nuevo en un momento.' : err.message?.length<120 ? err.message : 'Problema técnico. Intentá de nuevo en un momento.');
+    appendMessage(errText, 'bot');
   } finally {
     if(loadTimer)clearTimeout(loadTimer);
     isLoading=false; btn.disabled=inp.value.trim().length===0; setChips(false);
@@ -1323,14 +1449,21 @@ function submitPin() {
   const pinInput=$('pinInput'), pinError=$('pinError');
   const pin=pinInput.value.trim().toUpperCase();
   if(!pin||pin.length<4){pinError.textContent='Ingresá un código válido.';pinInput.focus();return;}
+
+  // PIN del municipio → dashboard de métricas
+  if (pin === DASHBOARD_PIN.toUpperCase()) {
+    $('pinScreen').style.display='none';
+    showDashboard();
+    return;
+  }
+
+  // PIN de docentes → chat normal
   sessionPin=pin;
   $('pinScreen').style.display='none';
   $('mainPage').style.display='flex';
-  // Intentar restaurar sesión anterior
   if (restoreSession()) {
     renderRestoredHistory();
   } else {
-    // Mostrar onboarding solo si no hay sesión que restaurar
     showOnboarding();
   }
   inp.focus();
@@ -1354,6 +1487,167 @@ inp.addEventListener('focus',()=>{
 window.addEventListener('online', ()=>setStatus(true));
 window.addEventListener('offline',()=>setStatus(false));
 setStatus(navigator.onLine);
+
+// ── Dashboard métricas ───────────────────────────────────────────
+function showDashboard() {
+  $('dashboardPage').style.display = 'block';
+  dLoadData();
+}
+
+function dExit() {
+  $('dashboardPage').style.display = 'none';
+  $('pinScreen').style.display = 'flex';
+  $('pinInput').value = '';
+  $('pinError').textContent = '';
+}
+
+function dSet(id, val, sub) {
+  const e=$('d'+id), s=$('d'+id+'Sub');
+  if(e) e.textContent = val;
+  if(s) s.textContent = sub;
+}
+
+function dErr(msg) {
+  const el = $('dErr');
+  el.textContent = msg;
+  el.classList.toggle('show', !!msg);
+}
+
+function dEsc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function dEmpty(icon) {
+  return `<div class="d-empty"><div class="d-empty-icon">${icon}</div><div class="d-empty-text">Sin datos aún</div></div>`;
+}
+
+async function dLoadData() {
+  const btn = $('dRefreshBtn');
+  btn.classList.add('loading');
+  dErr('');
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=dashboard&t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error en Apps Script');
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    dRenderAll(rows, data);
+    $('dLastUpdate').textContent = 'Act. ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) {
+    dErr('No se pudieron cargar los datos. (' + e.message + ')');
+    $('dLastUpdate').textContent = 'Error';
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+function dRenderAll(rows, data) {
+  dRenderKPI(rows, data);
+  dRenderChips(rows);
+  dRenderUso(rows);
+  dRenderStars(rows);
+  dRenderTimeline(rows);
+  dRenderTable(rows);
+}
+
+function dRenderKPI(rows, data) {
+  const total = rows.length || data.total || 0;
+  dSet('KpiTotal', total, total + ' encuesta' + (total!==1?'s':'') + ' registrada' + (total!==1?'s':''));
+
+  const utils = rows.map(r=>Number(r[5])).filter(Boolean);
+  const avg = utils.length ? (utils.reduce((a,b)=>a+b,0)/utils.length).toFixed(1) : (data.utilidad_promedio||null);
+  dSet('KpiUtil', avg ? avg+' / 5' : '—', avg ? utils.length+' calificaciones' : 'Sin calificaciones');
+
+  const si = rows.filter(r=>String(r[7])==='Í, directo').length
+          || rows.filter(r=>String(r[7])==='Sí, directo').length;
+  const pct = total ? Math.round(si/total*100) : 0;
+  dSet('KpiSi', pct+'%', si+' de '+total+' respuestas');
+
+  const tMap = {'Menos de 15 min':0.2,'30 minutos':0.5,'1 hora':1,'Más de 2 horas':2};
+  let hs = 0;
+  rows.forEach(r=>{const t=tMap[String(r[6]||'')];if(t)hs+=t;});
+  dSet('KpiTiempo', hs>0?(hs>=100?Math.round(hs)+'hs':hs.toFixed(0)+'hs'):'—', hs>0?'estimado por encuestas':'Sin datos');
+}
+
+function dRenderChips(rows) {
+  const counts={};
+  rows.forEach(r=>{const c=String(r[3]||'').trim()||'(sin chip)';counts[c]=(counts[c]||0)+1;});
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const max=sorted[0]?.[1]||1;
+  const el=$('dChips');
+  if(!sorted.length){el.innerHTML=dEmpty('📊');return;}
+  const colors=['#E06820','#E8A830','#7DC45E','#F28C4E','#7B6FD4','#4E9BB5','#D46F7B','#8FB55A'];
+  el.innerHTML=sorted.map(([lbl,n],i)=>`
+    <div class="d-bar-row">
+      <div class="d-bar-lbl" title="${dEsc(lbl)}">${dEsc(lbl)}</div>
+      <div class="d-bar-track"><div class="d-bar-fill" style="width:${Math.round(n/max*100)}%;background:${colors[i%colors.length]}"></div></div>
+      <div class="d-bar-n">${n}</div>
+    </div>`).join('');
+}
+
+function dRenderUso(rows) {
+  const counts={'Sí, directo':0,'Lo adapté':0,'No me sirvió':0};
+  rows.forEach(r=>{const u=String(r[7]||'');if(u in counts)counts[u]++;});
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  const el=$('dUso');
+  if(!total){el.innerHTML=dEmpty('🍩');return;}
+  const pal=[['#5A9E40','#7DC45E'],['#E8A830','#F5C862'],['#B91C1C','#EF4444']];
+  const entries=Object.entries(counts);
+  let cum=0;
+  const angles=entries.map(([,v])=>{const a=v/total*360;const o={start:cum,end:cum+a};cum+=a;return o;});
+  const R=52,r=32,cx=66,cy=66;
+  function arc(s,e){
+    const sr=(s-90)*Math.PI/180,er=(e-90)*Math.PI/180,ls=e-s>180?1:0;
+    return `M${cx+R*Math.cos(sr)} ${cy+R*Math.sin(sr)} A${R} ${R} 0 ${ls} 1 ${cx+R*Math.cos(er)} ${cy+R*Math.sin(er)} L${cx+r*Math.cos(er)} ${cy+r*Math.sin(er)} A${r} ${r} 0 ${ls} 0 ${cx+r*Math.cos(sr)} ${cy+r*Math.sin(sr)} Z`;
+  }
+  const paths=entries.map(([lbl,v],i)=>{
+    if(!v)return'';
+    const{start,end}=angles[i];
+    return `<path d="${arc(start,end<start+0.5?start+0.5:end)}" fill="${pal[i][0]}" opacity="0.85"><title>${lbl}: ${v} (${Math.round(v/total*100)}%)</title></path>`;
+  }).join('');
+  const siPct=Math.round(counts['Sí, directo']/total*100);
+  const svg=`<svg width="132" height="132" viewBox="0 0 132 132"><circle cx="${cx}" cy="${cy}" r="${R}" fill="#1E1915"/>${paths}<text x="${cx}" y="${cy}" text-anchor="middle" dy="0.35em" fill="#F5ECD8" font-family="Fraunces,serif" font-size="17" font-weight="800">${siPct}%</text><text x="${cx}" y="${cy+14}" text-anchor="middle" fill="rgba(245,236,216,0.35)" font-family="DM Sans,sans-serif" font-size="8">directos</text></svg>`;
+  const legend=entries.map(([lbl,v],i)=>`<div class="d-legend-item"><div class="d-legend-dot" style="background:${pal[i][0]}"></div><span>${lbl}</span><span class="d-legend-val">${v} (${Math.round(v/total*100)}%)</span></div>`).join('');
+  el.innerHTML=svg+`<div class="d-legend">${legend}</div>`;
+}
+
+function dRenderStars(rows) {
+  const counts={5:0,4:0,3:0,2:0,1:0};
+  rows.forEach(r=>{const u=Number(r[5]);if(u>=1&&u<=5)counts[u]++;});
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  const el=$('dStars');
+  if(!total){el.innerHTML=dEmpty('⭐');return;}
+  const max=Math.max(...Object.values(counts))||1;
+  el.innerHTML=[5,4,3,2,1].map(n=>{
+    const v=counts[n],pct=Math.round(v/total*100);
+    return `<div class="d-star-row"><div class="d-star-lbl">${'★'.repeat(n)}</div><div class="d-star-track"><div class="d-star-fill" style="width:${Math.round(v/max*100)}%"></div></div><div class="d-star-pct">${pct}%</div></div>`;
+  }).join('');
+}
+
+function dRenderTimeline(rows) {
+  const days=14,now=new Date(),buckets={};
+  for(let i=0;i<days;i++){const d=new Date(now);d.setDate(d.getDate()-(days-1-i));buckets[d.toLocaleDateString('es-AR')]=0;}
+  rows.forEach(r=>{const k=String(r[0]||'');if(k in buckets)buckets[k]++;});
+  const vals=Object.values(buckets),maxV=Math.max(...vals,1),keys=Object.keys(buckets);
+  $('dTlBars').innerHTML=vals.map((v,i)=>`<div class="d-tl-bar" style="height:${Math.max(3,Math.round(v/maxV*68))}px;opacity:${(0.4+0.6*v/maxV).toFixed(2)}" title="${keys[i]}: ${v}"></div>`).join('');
+  $('dTlLabels').innerHTML=keys.map((k,i)=>{const p=k.split('/'),show=(i%3===0||i===keys.length-1)?p[0]+'/'+p[1]:'';return `<div class="d-tl-lbl">${show}</div>`;}).join('');
+}
+
+function dRenderTable(rows) {
+  const tbody=$('dTableBody');
+  const recent=rows.slice(-20).reverse();
+  if(!recent.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:28px;color:rgba(245,236,216,0.3)">Sin registros aún</td></tr>`;return;}
+  const pilCls={'Sí, directo':'d-pill-g','Lo adapté':'d-pill-a','No me sirvió':'d-pill-r'};
+  tbody.innerHTML=recent.map(r=>`<tr>
+    <td>${dEsc(String(r[0]||''))} ${dEsc(String(r[1]||''))}</td>
+    <td>${dEsc(String(r[3]||'—'))}</td>
+    <td>${r[5]?'★'.repeat(Math.min(5,Number(r[5]))):'—'}</td>
+    <td>${dEsc(String(r[6]||'—'))}</td>
+    <td>${r[7]?`<span class="d-pill ${pilCls[r[7]]||'d-pill-a'}">${dEsc(String(r[7]))}</span>`:'—'}</td>
+  </tr>`).join('');
+}
+
+dRenderTimeline([]);
 </script>
 </body>
 </html>
