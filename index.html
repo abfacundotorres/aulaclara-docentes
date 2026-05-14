@@ -1526,20 +1526,26 @@ async function dLoadData() {
   btn.classList.add('loading');
   dErr('');
   try {
-    // Llamar al Worker como proxy — evita CORS del Apps Script
     const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ _dashboard: true, pin: DASHBOARD_PIN }),
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Error en el servidor');
+    // Intentar leer el body siempre — el Worker devuelve JSON incluso en error
+    let data;
+    try { data = await res.json(); } catch { throw new Error('Respuesta inválida del servidor (HTTP ' + res.status + ')'); }
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || 'Error del servidor (HTTP ' + res.status + ')');
+    }
     const rows = Array.isArray(data.rows) ? data.rows : [];
     dRenderAll(rows, data);
     $('dLastUpdate').textContent = 'Act. ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
   } catch(e) {
-    dErr('No se pudieron cargar los datos. (' + e.message + ')');
+    // Distinguir error de red de error de configuración
+    const msg = e.message === 'Failed to fetch'
+      ? 'Sin conexión al servidor. Verificá tu internet.'
+      : e.message;
+    dErr('⚠️ ' + msg);
     $('dLastUpdate').textContent = 'Error';
   } finally {
     btn.classList.remove('loading');
