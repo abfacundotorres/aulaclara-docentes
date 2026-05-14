@@ -579,7 +579,7 @@
 // ── Config ──────────────────────────────────────────────────────
 const WORKER_URL    = 'https://aulaclara.abfacundotorres.workers.dev';
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpFGqzfB6q60M5Szx8vFBAQjzQmXLyJ8FTZgSaL6vUQ2rQ5O37pTLpNh3A2slqH1UX/exec';
-const DASHBOARD_PIN   = 'PIOLEON.DATOS';  // ← cambiá por el PIN real del municipio
+const DASHBOARD_PIN   = 'MUNI2026';  // ← cambiá por el PIN real del municipio
 const SESSION_ID    = Math.random().toString(36).slice(2,10) + Date.now().toString(36);
 // Device ID: permanente por dispositivo, independiente del PIN
 // Permite que distintos docentes en el mismo dispositivo tengan historial separado
@@ -1526,10 +1526,15 @@ async function dLoadData() {
   btn.classList.add('loading');
   dErr('');
   try {
-    const res = await fetch(APPS_SCRIPT_URL + '?action=dashboard&t=' + Date.now());
+    // Llamar al Worker como proxy — evita CORS del Apps Script
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _dashboard: true, pin: DASHBOARD_PIN }),
+    });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Error en Apps Script');
+    if (!data.ok) throw new Error(data.error || 'Error en el servidor');
     const rows = Array.isArray(data.rows) ? data.rows : [];
     dRenderAll(rows, data);
     $('dLastUpdate').textContent = 'Act. ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
