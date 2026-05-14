@@ -54,7 +54,17 @@
   }
 
   /* Header: flex-shrink:0 — nunca se comprime */
-  .header { display: flex; align-items: center; gap: 12px; padding: 12px 18px; background: var(--warm-white); border: 1px solid var(--border); border-radius: 20px; margin-bottom: 10px; flex-shrink: 0; }
+  .header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px; background: var(--warm-white);
+    border: 1px solid var(--border); border-radius: 20px;
+    margin-bottom: 10px; flex-shrink: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease,
+                margin-bottom 0.25s ease, padding-top 0.25s ease,
+                padding-bottom 0.25s ease, border-width 0.25s ease;
+    max-height: 120px; overflow: hidden;
+  }
+  .header.kbd { max-height:0; opacity:0; margin-bottom:0; padding-top:0; padding-bottom:0; border-width:0; pointer-events:none; }
 
   /* Mensajes: ocupa todo el espacio restante, scroll interno */
   .messages { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 2px 14px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
@@ -1410,7 +1420,7 @@ async function sendMessage(text) {
   } finally {
     if(loadTimer)clearTimeout(loadTimer);
     isLoading=false; btn.disabled=inp.value.trim().length===0; setChips(false);
-    updateResumeBtn(); inp.focus();
+    updateResumeBtn(); focusInput();
   }
 }
 
@@ -1618,7 +1628,7 @@ async function submitPin() {
       } else {
         showOnboarding();
       }
-      inp.focus();
+      focusInput();
     }
   } catch {
     pinError.textContent = 'Sin conexión. Revisá tu internet e intentá de nuevo.';
@@ -1642,11 +1652,33 @@ inp.addEventListener('focus',()=>{
   document.querySelector('meta[name=viewport]')
     .setAttribute('content','width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no');
 });
+inp.addEventListener('blur',()=>{
+  // Teclado cerrado — restaurar header
+  const h = document.querySelector('#mainPage .header');
+  if (h) h.classList.remove('kbd');
+});
+
+// ── Ocultar header cuando el teclado sube (Android Chrome) ──────
+// visualViewport.height baja cuando sube el teclado.
+// Comparamos contra window.innerHeight que NO cambia con el teclado.
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    const h = document.querySelector('#mainPage .header');
+    if (!h) return;
+    // Si el viewport visible es < 75% del innerHeight, hay teclado
+    const keyboardUp = window.visualViewport.height < window.innerHeight * 0.75;
+    h.classList.toggle('kbd', keyboardUp);
+    if (keyboardUp) requestAnimationFrame(() => { msg.scrollTop = msg.scrollHeight; });
+  });
+}
 window.addEventListener('online', ()=>setStatus(true));
 window.addEventListener('offline',()=>setStatus(false));
 setStatus(navigator.onLine);
 
-// ── Dashboard métricas ───────────────────────────────────────────
+// Solo hacer foco en desktop — en mobile el teclado no debe abrirse solo
+function focusInput() {
+  if (window.innerWidth > 900) inp.focus();
+}
 function showDashboard() {
   $('dashboardPage').style.display = 'block';
   document.body.style.overflow = 'auto'; // liberar scroll del body para el dashboard
