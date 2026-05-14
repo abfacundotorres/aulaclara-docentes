@@ -28,9 +28,11 @@
     --amber-pale: #FEF3D8; --brown-dark: #3D1F0A; --brown-mid: #7A3B10; --brown-light: #C47A3A;
     --border: #EDD5B0; --green: #3A7D2C; --green-pale: #EAF3DE; --red: #B91C1C; --red-pale: #FEE2E2;
   }
-  html, body { height: 100%; background: var(--cream); font-family: 'DM Sans', system-ui, sans-serif; color: var(--brown-dark); overflow: hidden; -webkit-font-smoothing: antialiased; }
+  html { height: 100%; }
+  body { height: 100%; background: var(--cream); font-family: 'DM Sans', system-ui, sans-serif; color: var(--brown-dark); overflow: hidden; -webkit-font-smoothing: antialiased; }
   body::before { content: ''; position: fixed; inset: 0; background-image: radial-gradient(circle at 20% 20%, rgba(232,160,32,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(217,95,26,0.07) 0%, transparent 50%); pointer-events: none; z-index: 0; }
-  .page { position: relative; z-index: 1; height: 100vh; display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; padding: 14px 14px 0; }
+  .page { position: relative; z-index: 1; height: 100vh; height: 100dvh; display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; padding: 14px 14px 0; }
+
   .header { display: flex; align-items: center; gap: 12px; padding: 12px 18px; background: var(--warm-white); border: 1px solid var(--border); border-radius: 20px; margin-bottom: 10px; flex-shrink: 0; }
   .avatar-ring { width: 54px; height: 54px; border-radius: 50%; background: var(--orange-pale); border: 2.5px solid var(--orange); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; font-size: 22px; }
   .avatar-ring img { width: 50px; height: 50px; object-fit: cover; }
@@ -258,15 +260,19 @@
   /* ── Dashboard ── */
   #dashboardPage { display:none; min-height:100vh; background:#0D0A07; color:#F5ECD8; font-family:'DM Sans',system-ui,sans-serif; overflow-y:auto; }
   #dashboardPage::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat:repeat; background-size:200px; opacity:0.6; }
+
+  /* ── Layout base ── */
   .d-wrap { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:36px 24px 80px; }
-  .d-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:40px; flex-wrap:wrap; gap:16px; }
-  .d-logo { display:flex; align-items:center; gap:14px; }
-  .d-logo-badge { width:46px; height:46px; border-radius:14px; background:linear-gradient(135deg,#E06820,#E8A830); display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 20px rgba(224,104,32,0.4); }
-  .d-logo h1 { font-family:'Fraunces',Georgia,serif; font-size:1.3rem; font-weight:800; letter-spacing:-0.02em; }
-  .d-logo p { font-size:11px; color:rgba(245,236,216,0.35); margin-top:2px; letter-spacing:0.08em; text-transform:uppercase; }
-  .d-top-right { display:flex; align-items:center; gap:10px; }
-  .d-last { font-size:11px; color:rgba(245,236,216,0.35); font-family:'DM Mono',monospace; }
-  .d-btn { padding:7px 16px; border-radius:10px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:all 0.15s; }
+
+  /* ── Header ── */
+  .d-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:40px; gap:16px; }
+  .d-logo { display:flex; align-items:center; gap:14px; min-width:0; }
+  .d-logo-badge { width:46px; height:46px; border-radius:14px; background:linear-gradient(135deg,#E06820,#E8A830); display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 20px rgba(224,104,32,0.4); flex-shrink:0; }
+  .d-logo h1 { font-family:'Fraunces',Georgia,serif; font-size:1.3rem; font-weight:800; letter-spacing:-0.02em; white-space:nowrap; }
+  .d-logo p { font-size:11px; color:rgba(245,236,216,0.35); margin-top:2px; letter-spacing:0.08em; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .d-top-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .d-last { font-size:11px; color:rgba(245,236,216,0.35); font-family:'DM Mono',monospace; white-space:nowrap; }
+  .d-btn { padding:7px 14px; border-radius:10px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
   .d-btn-refresh { background:#1E1915; border:1px solid rgba(237,213,176,0.18); color:rgba(245,236,216,0.55); display:flex; align-items:center; gap:6px; }
   .d-btn-refresh:hover { border-color:#E06820; color:#F28C4E; }
   .d-btn-refresh.loading .d-ri { animation:dspin 0.8s linear infinite; display:inline-block; }
@@ -275,55 +281,123 @@
   .d-btn-exit:hover { border-color:#B91C1C; color:#FCA5A5; }
   .d-err { background:rgba(185,28,28,0.12); border:1px solid rgba(185,28,28,0.3); border-radius:12px; padding:12px 16px; font-size:13px; color:#FCA5A5; margin-bottom:20px; display:none; }
   .d-err.show { display:block; }
-  .d-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:24px; }
+
+  /* ── KPI grid: 4 columnas en desktop, 2×2 en mobile ── */
+  .d-kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
   .d-kpi { background:#161210; border:1px solid rgba(237,213,176,0.10); border-radius:18px; padding:22px 20px; position:relative; overflow:hidden; }
   .d-kpi::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--da,#E06820); }
   .d-kpi-label { font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(245,236,216,0.35); margin-bottom:8px; }
   .d-kpi-val { font-family:'Fraunces',Georgia,serif; font-size:2.2rem; font-weight:800; line-height:1; margin-bottom:5px; }
   .d-kpi-sub { font-size:11px; color:rgba(245,236,216,0.35); }
   .d-kpi-icon { position:absolute; top:16px; right:16px; font-size:20px; opacity:0.18; }
+
+  /* ── Grillas de cards ── */
   .d-row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
   .d-card { background:#161210; border:1px solid rgba(237,213,176,0.10); border-radius:18px; padding:22px; }
   .d-card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(245,236,216,0.35); margin-bottom:18px; }
+
+  /* ── Barras horizontales (herramientas) ── */
   .d-bar-list { display:flex; flex-direction:column; gap:9px; }
   .d-bar-row { display:flex; align-items:center; gap:9px; }
-  .d-bar-lbl { font-size:11px; color:rgba(245,236,216,0.55); min-width:100px; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .d-bar-track { flex:1; height:7px; background:#1E1915; border-radius:4px; overflow:hidden; }
+  .d-bar-lbl { font-size:11px; color:rgba(245,236,216,0.55); width:90px; min-width:0; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .d-bar-track { flex:1; height:7px; background:#1E1915; border-radius:4px; overflow:hidden; min-width:0; }
   .d-bar-fill { height:100%; border-radius:4px; transition:width 0.7s cubic-bezier(0.16,1,0.3,1); }
-  .d-bar-n { font-family:'DM Mono',monospace; font-size:10px; color:rgba(245,236,216,0.35); min-width:24px; text-align:right; }
-  .d-donut-wrap { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
-  .d-legend { display:flex; flex-direction:column; gap:7px; }
+  .d-bar-n { font-family:'DM Mono',monospace; font-size:10px; color:rgba(245,236,216,0.35); min-width:20px; text-align:right; }
+
+  /* ── Dona de uso ── */
+  .d-donut-wrap { display:flex; align-items:center; gap:20px; }
+  .d-donut-wrap svg { flex-shrink:0; }
+  .d-legend { display:flex; flex-direction:column; gap:7px; flex:1; min-width:0; }
   .d-legend-item { display:flex; align-items:center; gap:7px; font-size:11px; color:rgba(245,236,216,0.55); }
   .d-legend-dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
-  .d-legend-val { font-family:'DM Mono',monospace; font-size:10px; color:rgba(245,236,216,0.35); margin-left:auto; padding-left:10px; }
+  .d-legend-val { font-family:'DM Mono',monospace; font-size:10px; color:rgba(245,236,216,0.35); margin-left:auto; padding-left:6px; white-space:nowrap; }
+
+  /* ── Estrellas ── */
   .d-stars { display:flex; flex-direction:column; gap:7px; }
   .d-star-row { display:flex; align-items:center; gap:8px; }
   .d-star-lbl { font-size:11px; color:#F5C862; min-width:52px; }
   .d-star-track { flex:1; height:7px; background:#1E1915; border-radius:4px; overflow:hidden; }
   .d-star-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,#E8A830,#F5C862); transition:width 0.7s cubic-bezier(0.16,1,0.3,1); }
   .d-star-pct { font-family:'DM Mono',monospace; font-size:10px; color:rgba(245,236,216,0.35); min-width:30px; text-align:right; }
+
+  /* ── Timeline ── */
   .d-tl-bars { display:flex; align-items:flex-end; gap:3px; height:72px; }
   .d-tl-bar { flex:1; background:#E06820; border-radius:3px 3px 0 0; min-height:3px; transition:height 0.5s cubic-bezier(0.16,1,0.3,1); opacity:0.8; }
   .d-tl-bar:hover { opacity:1; }
   .d-tl-labels { display:flex; gap:3px; margin-top:5px; }
   .d-tl-lbl { flex:1; font-family:'DM Mono',monospace; font-size:9px; color:rgba(245,236,216,0.3); text-align:center; overflow:hidden; }
-  .d-table-wrap { overflow-x:auto; }
+
+  /* ── Tabla: desktop normal, mobile = card stacking ── */
+  .d-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .d-table { width:100%; border-collapse:collapse; font-size:11px; }
-  .d-table thead th { font-size:10px; text-transform:uppercase; letter-spacing:0.07em; color:rgba(245,236,216,0.35); padding:7px 10px; text-align:left; border-bottom:1px solid rgba(237,213,176,0.10); }
+  .d-table thead th { font-size:10px; text-transform:uppercase; letter-spacing:0.07em; color:rgba(245,236,216,0.35); padding:7px 10px; text-align:left; border-bottom:1px solid rgba(237,213,176,0.10); white-space:nowrap; }
   .d-table tbody td { padding:9px 10px; border-bottom:1px solid rgba(237,213,176,0.07); color:rgba(245,236,216,0.55); font-family:'DM Mono',monospace; }
   .d-table tbody tr:last-child td { border-bottom:none; }
   .d-table tbody tr:hover td { background:#1E1915; }
+
+  /* ── Pills ── */
   .d-pill { display:inline-block; padding:2px 7px; border-radius:20px; font-size:10px; font-weight:600; font-family:'DM Sans',sans-serif; }
   .d-pill-g { background:rgba(90,158,64,0.15); color:#7DC45E; border:1px solid rgba(90,158,64,0.25); }
   .d-pill-a { background:rgba(232,168,48,0.15); color:#F5C862; border:1px solid rgba(232,168,48,0.25); }
   .d-pill-r { background:rgba(185,28,28,0.15); color:#FCA5A5; border:1px solid rgba(185,28,28,0.25); }
+
+  /* ── Empty states ── */
   .d-empty { text-align:center; padding:32px 16px; }
   .d-empty-icon { font-size:30px; margin-bottom:8px; opacity:0.3; }
   .d-empty-text { font-size:11px; color:rgba(245,236,216,0.35); }
+
+  /* ── Tablet: ≤900px ── */
+  @media (max-width:900px) {
+    .d-kpi-grid { grid-template-columns:repeat(2,1fr); }
+    .d-last { display:none; }
+  }
+
+  /* ── Mobile: ≤640px ── */
   @media (max-width:640px) {
-    .d-row2 { grid-template-columns:1fr; }
-    .d-wrap { padding:20px 12px 60px; }
-    .d-kpi-val { font-size:1.8rem; }
+    .d-wrap { padding:16px 12px 60px; }
+
+    /* Header: logo izquierda, botones derecha compactos */
+    .d-top { margin-bottom:24px; gap:10px; }
+    .d-logo-badge { width:38px; height:38px; font-size:17px; border-radius:11px; }
+    .d-logo h1 { font-size:1.05rem; }
+    .d-logo p { display:none; }
+    .d-btn { padding:6px 11px; font-size:11px; }
+
+    /* KPIs: 2×2 */
+    .d-kpi-grid { grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+    .d-kpi { padding:16px 14px; border-radius:14px; }
+    .d-kpi-val { font-size:1.75rem; }
+    .d-kpi-icon { font-size:16px; top:12px; right:12px; }
+
+    /* Cards en columna */
+    .d-row2 { grid-template-columns:1fr; gap:10px; margin-bottom:10px; }
+    .d-card { padding:16px 14px; border-radius:14px; }
+
+    /* Barras: label más corto */
+    .d-bar-lbl { width:72px; font-size:10px; }
+
+    /* Dona: SVG + leyenda lado a lado si caben, si no apilado */
+    .d-donut-wrap { gap:14px; }
+
+    /* Tabla mobile: scroll suave, columna Tiempo oculta */
+    .d-table-wrap { border-radius:10px; overflow:hidden; overflow-x:auto; }
+    .d-table { font-size:10px; min-width:340px; }
+    .d-table thead th { padding:6px 8px; font-size:9px; }
+    .d-table tbody td { padding:8px 8px; }
+    .d-col-tiempo { display:none; }
+
+    /* Timeline: más compacto */
+    .d-tl-bars { height:56px; }
+  }
+
+  /* ── Mobile chico: ≤380px ── */
+  @media (max-width:380px) {
+    .d-kpi-val { font-size:1.5rem; }
+    .d-kpi-label { font-size:9px; }
+    .d-kpi-sub { font-size:10px; }
+    .d-bar-lbl { width:60px; }
+    .d-donut-wrap { flex-direction:column; align-items:flex-start; gap:12px; }
+    .d-legend-val { display:none; }
   }
 </style>
 </head>
@@ -439,7 +513,7 @@
       <div class="d-card-title">Últimas 20 respuestas</div>
       <div class="d-table-wrap">
         <table class="d-table">
-          <thead><tr><th>Fecha</th><th>Herramienta</th><th>Utilidad</th><th>Tiempo</th><th>Resultado</th></tr></thead>
+          <thead><tr><th>Fecha</th><th>Herramienta</th><th>Utilidad</th><th class="d-col-tiempo">Tiempo</th><th>Resultado</th></tr></thead>
           <tbody id="dTableBody"><tr><td colspan="5" style="text-align:center;padding:28px;color:rgba(245,236,216,0.3)">Cargando…</td></tr></tbody>
         </table>
       </div>
@@ -578,8 +652,9 @@
 <script>
 // ── Config ──────────────────────────────────────────────────────
 const WORKER_URL    = 'https://aulaclara.abfacundotorres.workers.dev';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpFGqzfB6q60M5Szx8vFBAQjzQmXLyJ8FTZgSaL6vUQ2rQ5O37pTLpNh3A2slqH1UX/exec';
-const DASHBOARD_PIN   = 'PIOLEON.DATOS';
+// DASHBOARD_PIN se valida server-side en el Worker — no necesita estar en el cliente.
+// El frontend lo envía tal como el usuario lo escribe; el Worker decide si es válido.
+let dashboardPin = ''; // se asigna en submitPin cuando el Worker confirma acceso
 const SESSION_ID    = Math.random().toString(36).slice(2,10) + Date.now().toString(36);
 // Device ID: permanente por dispositivo, independiente del PIN
 // Permite que distintos docentes en el mismo dispositivo tengan historial separado
@@ -844,14 +919,11 @@ async function generateWord(rawContent) {
 
 // ── PDF generation ─────────────────────────────────────────────
 function generatePDF(rawContent) {
-  // Convierte el documento a HTML limpio y usa print para generar PDF
   const docs = parseDoc(rawContent.replace(/\[PERIODO_\d\]\s*/g,''));
   if (!docs.length) throw new Error('Sin contenido para generar.');
 
   const titleMatch = rawContent.match(/\[TITULO\]\s*([^\n]+)/);
   const title = titleMatch ? titleMatch[1].trim() : 'Aula Clara';
-  // Fix 4: filename eliminado — generatePDF abre ventana print, no descarga con nombre
-
   const escH = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   let html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
@@ -907,13 +979,35 @@ function generatePDF(rawContent) {
   });
   html += `<div class="footer">Aula Clara · aulaclara.com.ar</div></body></html>`;
 
-  // Abrir en nueva ventana y disparar print dialog
-  const w = window.open('', '_blank');
-  if (!w) throw new Error('Bloqueador de popups activo. Permitir popups para este sitio.');
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(() => { w.print(); }, 400);
+  // Estrategia de impresión/descarga:
+  // 1. Intentar window.open (desktop Chrome/Firefox)
+  // 2. Si falla o está en mobile, descargar como .html con instrucción de abrir e imprimir
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+
+  // Detectar mobile: en iOS/Android el popup suele estar bloqueado y print() no funciona bien
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  if (!isMobile) {
+    const w = window.open(blobUrl, '_blank');
+    if (w) {
+      // Desktop: abrir en pestaña y disparar print dialog
+      w.addEventListener('load', () => { w.print(); });
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+      return;
+    }
+  }
+
+  // Fallback mobile / popup bloqueado:
+  // Descargar el HTML — el docente lo abre y usa "Compartir → Imprimir" del browser
+  const filename = (title.toLowerCase()
+    .replace(/[áä]/g,'a').replace(/[éë]/g,'e').replace(/[íï]/g,'i')
+    .replace(/[óö]/g,'o').replace(/[úü]/g,'u').replace(/ñ/g,'n')
+    .replace(/[^\w\s-]/g,'').replace(/\s+/g,'_').slice(0,50)) + '.html';
+  const a = Object.assign(document.createElement('a'), { href: blobUrl, download: filename });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+  showToast('Archivo descargado — abrilo y usá "Imprimir" para generar el PDF', 5000);
 }
 
 // ── Encuesta ────────────────────────────────────────────────────
@@ -1086,15 +1180,17 @@ function appendMessage(text, role, noSideEffects = false) {
   if (role==='bot' && !noSideEffects) {
     if (text.includes('[PERIODO_0]')) {
       plan.p0=text; updateProgress(0); activeFlow='plan_anual_p1';
-      setTimeout(() => { if (!isLoading) sendMessage('Generá el período 1'); }, 800);
+      // planNext: espera al next microtask para que appendMessage termine antes
+      // de iniciar el siguiente sendMessage — evita race condition con isLoading
+      Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá el período 1'); });
     }
     if (text.includes('[PERIODO_1]')) {
       plan.p1=text; updateProgress(1); activeFlow='plan_anual_p2';
-      setTimeout(() => { if (!isLoading) sendMessage('Generá el período 2'); }, 800);
+      Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá el período 2'); });
     }
     if (text.includes('[PERIODO_2]')) {
       plan.p2=text; updateProgress(2); activeFlow='plan_anual_p3';
-      setTimeout(() => { if (!isLoading) sendMessage('Generá el período 3'); }, 800);
+      Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá el período 3'); });
     }
     if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
     if (activeFlow === 'adaptacion_q' && text.includes('Generando la adaptación ahora')) {
@@ -1136,9 +1232,27 @@ function appendMessage(text, role, noSideEffects = false) {
         .replace(/\[TEXTO\]\s*/g,'').replace(/\[LISTA\]\s*/g,'• ')
         .replace(/\[FIN_DOCUMENTO\]/g,'').replace(/\[PERIODO_\d\]\s*/g,'')
         .replace(/\[SEPARADOR\]/g,'\n---\n').trim();
-      navigator.clipboard.writeText(plain)
-        .then(()=>{cp.innerHTML='✅ Copiado';setTimeout(()=>{cp.innerHTML='📋 Copiar';},2000);})
-        .catch(()=>showToast('No se pudo copiar'));
+      const doFallback = () => {
+        // Fallback para Android sin clipboard API o contextos HTTP
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = plain;
+          ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+          document.body.appendChild(ta);
+          ta.focus(); ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          if (ok) { cp.innerHTML='✅ Copiado'; setTimeout(()=>{cp.innerHTML='📋 Copiar';},2000); }
+          else showToast('No se pudo copiar — seleccioná el texto manualmente');
+        } catch { showToast('No se pudo copiar — seleccioná el texto manualmente'); }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(plain)
+          .then(()=>{ cp.innerHTML='✅ Copiado'; setTimeout(()=>{cp.innerHTML='📋 Copiar';},2000); })
+          .catch(doFallback);
+      } else {
+        doFallback();
+      }
     };
     acts.appendChild(cp);
 
@@ -1207,7 +1321,6 @@ async function fetchMsg(message, attempt=0) {
       }),
       signal: ctrl.signal,
     });
-    clearTimeout(tmout);
     if (res.status===429) throw Object.assign(new Error('rate_limit'),{fatal:true});
     if (res.status>=400&&res.status<500) throw Object.assign(new Error(`http_${res.status}`),{fatal:true});
     if (!res.ok) throw new Error(`http_${res.status}`);
@@ -1217,17 +1330,19 @@ async function fetchMsg(message, attempt=0) {
     if (data.flow) activeFlow = data.flow;
     return data.reply;
   } catch(err) {
-    clearTimeout(tmout);
     if (err.fatal) throw err;
     if (!navigator.onLine) throw Object.assign(new Error('offline'),{fatal:true});
-    // Retry silencioso en timeout o error 5xx — sin mostrar mensaje al docente
+    // Retry silencioso en timeout o error 5xx
     if (attempt < MAX_RETRY && (err.name==='AbortError' || err.message?.startsWith('http_5') || err.message==='fetch_failed')) {
-      // Solo mostrar toast desde el 2do intento — el primero es invisible
       if (attempt > 0) showToast(`Reintentando… (${attempt+1}/${MAX_RETRY})`);
       await new Promise(r=>setTimeout(r, RETRY_BASE * Math.pow(2, attempt)));
       return fetchMsg(message, attempt+1);
     }
     throw err;
+  } finally {
+    // Siempre limpiar el timer — evita abort fantasma si la próxima request
+    // reutiliza el mismo ctrl antes de que este timeout venza
+    clearTimeout(tmout);
   }
 }
 
@@ -1238,7 +1353,7 @@ async function sendMessage(text) {
   $('resumeBtn').classList.remove('visible');
   appendMessage(text,'user');
   $('typingRow').classList.add('visible');
-  msg.scrollTop=msg.scrollHeight;
+  requestAnimationFrame(() => { msg.scrollTop = msg.scrollHeight; });
 
   let loadTimer = null;
   if (activeFlow.startsWith('plan_anual')) loadTimer=setTimeout(()=>showToast('Clara está armando el plan… puede tardar hasta 30s ☕',40000),1000);
@@ -1433,40 +1548,59 @@ function restoreSession() {
 function renderRestoredHistory() {
   if (!history.length) return;
   if (sug) sug.style.display = 'none';
-  // Fix 1+5: flag para suprimir side-effects (plan anual, flow advance)
-  // durante la restauración — solo renderizamos, no ejecutamos lógica
-  const restoring = true;
   history.forEach(t => {
     const role = t.role === 'user' ? 'user' : 'bot';
-    appendMessageSafe(t.parts[0].text, role, restoring);
+    appendMessageSafe(t.parts[0].text, role); // noSideEffects=true ya está en appendMessageSafe
   });
   updateResumeBtn();
   showToast('✨ Continuando tu última sesión', 3000);
 }
 
 // ── PIN ─────────────────────────────────────────────────────────
-function submitPin() {
-  const pinInput=$('pinInput'), pinError=$('pinError');
+async function submitPin() {
+  const pinInput=$('pinInput'), pinError=$('pinError'), pinBtn=$('pinBtn');
   const pin=pinInput.value.trim().toUpperCase();
   if(!pin||pin.length<4){pinError.textContent='Ingresá un código válido.';pinInput.focus();return;}
 
-  // PIN del municipio → dashboard de métricas
-  if (pin === DASHBOARD_PIN.toUpperCase()) {
-    $('pinScreen').style.display='none';
-    showDashboard();
-    return;
-  }
+  // Validar contra el Worker — él conoce tanto los PINes de docentes como el del municipio
+  pinBtn.disabled=true; pinBtn.textContent='Verificando…';
+  pinError.textContent='';
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ _ping: true, pin }),
+    });
+    const data = await res.json().catch(()=>({}));
 
-  // PIN de docentes → chat normal
-  sessionPin=pin;
-  $('pinScreen').style.display='none';
-  $('mainPage').style.display='flex';
-  if (restoreSession()) {
-    renderRestoredHistory();
-  } else {
-    showOnboarding();
+    if (!res.ok || !data.ok) {
+      pinError.textContent = data.error || 'Código incorrecto. Revisá e intentá de nuevo.';
+      pinInput.focus();
+      return;
+    }
+
+    if (data.role === 'dashboard') {
+      // PIN del municipio → dashboard de métricas
+      dashboardPin = pin;
+      $('pinScreen').style.display='none';
+      showDashboard();
+    } else {
+      // PIN de docente → chat normal
+      sessionPin=pin;
+      $('pinScreen').style.display='none';
+      $('mainPage').style.display='flex';
+      if (restoreSession()) {
+        renderRestoredHistory();
+      } else {
+        showOnboarding();
+      }
+      inp.focus();
+    }
+  } catch {
+    pinError.textContent = 'Sin conexión. Revisá tu internet e intentá de nuevo.';
+  } finally {
+    pinBtn.disabled=false; pinBtn.textContent='Ingresar';
   }
-  inp.focus();
 }
 $('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitPin();});
 $('pinInput').addEventListener('focus',function(){this.style.borderColor='var(--orange)';});
@@ -1529,7 +1663,7 @@ async function dLoadData() {
     const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ _dashboard: true, pin: DASHBOARD_PIN }),
+      body: JSON.stringify({ _dashboard: true, pin: dashboardPin }),
     });
     // Intentar leer el body siempre — el Worker devuelve JSON incluso en error
     let data;
@@ -1653,7 +1787,7 @@ function dRenderTable(rows) {
     <td>${dEsc(String(r[0]||''))} ${dEsc(String(r[1]||''))}</td>
     <td>${dEsc(String(r[3]||'—'))}</td>
     <td>${r[5]?'★'.repeat(Math.min(5,Number(r[5]))):'—'}</td>
-    <td>${dEsc(String(r[6]||'—'))}</td>
+    <td class="d-col-tiempo">${dEsc(String(r[6]||'—'))}</td>
     <td>${r[7]?`<span class="d-pill ${pilCls[r[7]]||'d-pill-a'}">${dEsc(String(r[7]))}</span>`:'—'}</td>
   </tr>`).join('');
 }
