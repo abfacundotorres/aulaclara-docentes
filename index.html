@@ -1227,6 +1227,7 @@ function appendMessage(text, role, noSideEffects = false) {
     }
     if (activeFlow === 'esi_q' && text.includes('Generando la secuencia ESI ahora')) {
       activeFlow = 'esi';
+      Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá la secuencia ESI ahora'); });
     }
   }
 
@@ -1356,7 +1357,9 @@ async function fetchMsg(message, attempt=0) {
     const data = await res.json();
     if (data.error) throw Object.assign(new Error(data.error),{fatal:true});
     if (!data.reply) throw new Error('empty');
-    if (data.flow) activeFlow = data.flow;
+    // Solo actualizar activeFlow desde el Worker si el frontend no lo transicionó ya
+    // a un flow de generación (evita que 'esi_q' pise 'esi' después de la transición)
+    if (data.flow && data.flow === activeFlow) activeFlow = data.flow;
     return data.reply;
   } catch(err) {
     if (err.fatal) throw err;
@@ -1389,6 +1392,7 @@ async function sendMessage(text) {
   else if (activeFlow==='boletin')         loadTimer=setTimeout(()=>showToast('Clara está redactando el informe…',20000),1000);
   else if (activeFlow==='adaptacion')      loadTimer=setTimeout(()=>showToast('Clara está preparando la adaptación… puede tardar hasta 40s ☕',50000),1000);
   else if (activeFlow==='planificacion')   loadTimer=setTimeout(()=>showToast('Clara está armando la planificación…',20000),1000);
+  else if (activeFlow==='esi')             loadTimer=setTimeout(()=>showToast('Clara está preparando la secuencia ESI…',25000),1000);
 
   extractDocenteCtx(text);
   const pending = {role:'user',parts:[{text}]};
