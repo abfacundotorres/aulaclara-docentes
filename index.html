@@ -763,9 +763,9 @@ function extractDocenteCtx(userText) {
 function updateProgress(step) {
   $('planProgress').classList.add('visible');
   const s1 = $('planStep1'), s2 = $('planStep2'), s3 = $('planStep3');
-  s1.className = 'plan-step' + (step > 1 ? ' done' : step === 1 ? ' done' : step === 0 ? ' current' : '');
-  s2.className = 'plan-step' + (step > 2 ? ' done' : step === 2 ? ' done' : step === 1 ? ' current' : '');
-  s3.className = 'plan-step' + (step >= 3 ? ' done'    : step === 2 ? ' current' : '');
+  s1.className = 'plan-step' + (step >= 1 ? ' done' : step === 0 ? ' current' : '');
+  s2.className = 'plan-step' + (step >= 2 ? ' done' : step === 1 ? ' current' : '');
+  s3.className = 'plan-step' + (step >= 3 ? ' done' : step === 2 ? ' current' : '');
   $('planProgressLabel').textContent =
     step >= 3 ? '¡Plan Anual completo — listo para descargar! ✅' :
     step === 0 ? 'Plan Anual — Introducción lista. Generando período 1…' :
@@ -1221,9 +1221,11 @@ function appendMessage(text, role, noSideEffects = false) {
     if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
     if (activeFlow === 'adaptacion_q' && text.includes('Generando la adaptación ahora')) {
       activeFlow = 'adaptacion';
+      Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá la adaptación ahora'); });
     }
     if (activeFlow === 'planificacion_q' && text.includes('Generando la planificación ahora')) {
       activeFlow = 'planificacion';
+      Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá la planificación ahora'); });
     }
     if (activeFlow === 'esi_q' && text.includes('Generando la secuencia ESI ahora')) {
       activeFlow = 'esi';
@@ -1459,6 +1461,7 @@ function sendSuggestion(text, chip) {
   if(isLoading)return;
   if(sug)sug.style.display='none';
   plan.reset();
+  history = [];
   docenteCtx.grado = '';
   sessionChip = chip || '';
   inp.value=text; autoResize(); updateChar(); handleSend();
@@ -1569,7 +1572,10 @@ function restoreSession() {
       return false;
     }
     history      = Array.isArray(s.history) ? s.history : [];
-    activeFlow   = s.activeFlow  || 'general';
+    // Si se guardó en mitad de un flow _q, resetear a general
+    // (el auto-trigger ya no se va a disparar y el flow quedaría trabado)
+    const restoredFlow = s.activeFlow || 'general';
+    activeFlow   = restoredFlow.endsWith('_q') ? 'general' : restoredFlow;
     docenteCtx   = s.docenteCtx  || { nombre: '', grado: '' };
     sessionChip  = s.sessionChip || '';
     messageCount = s.messageCount || 0;
