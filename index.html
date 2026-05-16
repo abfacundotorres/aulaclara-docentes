@@ -1225,6 +1225,9 @@ function appendMessage(text, role, noSideEffects = false) {
     if (activeFlow === 'planificacion_q' && text.includes('Generando la planificación ahora')) {
       activeFlow = 'planificacion';
     }
+    if (activeFlow === 'esi_q' && text.includes('Generando la secuencia ESI ahora')) {
+      activeFlow = 'esi';
+    }
   }
 
   const row = document.createElement('div');
