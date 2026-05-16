@@ -696,7 +696,7 @@ const STORAGE_KEY = 'clara_s_v2_' + DEVICE_ID;
 const MAX_CHARS     = 2000;
 const MAX_RETRY     = 2;
 const RETRY_BASE    = 1200;
-const CLIENT_TMOUT  = 55000;  // 55s: cubre Groq(25s) + fallback Gemini(22s) + overhead RAG
+const CLIENT_TMOUT  = 65000;  // 65s: cubre Groq(25s) + delay retry(3s) + retry(15s) + Gemini(22s) + overhead
 const HISTORY_LIMIT = 16;
 const RESUME_THRESHOLD = 4; // mensajes mínimos para mostrar botón resumen
 const SURVEY_THRESHOLD  = 5; // mensajes para mostrar botón encuesta
@@ -739,7 +739,8 @@ const sug = $('suggestions');
 
 // ── isDocumentText ──────────────────────────────────────────────
 function isDoc(t) {
-  return t.includes('[TITULO]') || t.includes('[FIN_DOCUMENTO]') || t.includes('[PERIODO_');
+  // Requiere [TITULO] + al menos otra marca de documento para evitar falsos positivos
+  return t.includes('[TITULO]') && (t.includes('[FIN_DOCUMENTO]') || t.includes('[SECCION]') || t.includes('[PERIODO_'));
 }
 
 // ── Extrae contexto del docente ─────────────────────────────────
@@ -862,10 +863,11 @@ function parseDoc(raw) {
       if(tgt&&tx)tgt.items.push({type:'bullet',text:tx}); last=tx?null:'lista';
     } else if (last&&doc) {
       const tgt=sub||sec;
+      // Solo continuar si la línea no es una marca nueva — una marca resetea el contexto
       if(tgt&&t&&!t.startsWith('[')) {
         tgt.items.push({type:{lista:'bullet',texto:'text',campo:'field'}[last]||'text',text:t});
       }
-      last=null;
+      last=null; // siempre resetear, incluso si era marca
     }
   }
   if(doc)docs.push(doc);
@@ -876,8 +878,8 @@ function makeFilename(raw) {
   const m = raw.match(/\[TITULO\]\s*(.+)/);
   return ((m?m[1].trim():'aulaclara')
     .toLowerCase()
-    .replace(/[áä]/g,'a').replace(/[éë]/g,'e').replace(/[íï]/g,'i')
-    .replace(/[óö]/g,'o').replace(/[úü]/g,'u').replace(/ñ/g,'n')
+    .replace(/[áàâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i')
+    .replace(/[óòôö]/g,'o').replace(/[úùûü]/g,'u').replace(/ñ/g,'n').replace(/ç/g,'c')
     .replace(/[^\w\s-]/g,'').replace(/\s+/g,'_').slice(0,60)) + '.docx';
 }
 
@@ -972,15 +974,24 @@ function generatePDF(rawContent) {
   .footer { margin-top: 24px; font-size: 8pt; color: #C47A3A; text-align: center; border-top: 1px solid #EDD5B0; padding-top: 8px; }
 </style></head><body>`;
 
-  const renderItem = (item) => {
+  const renderItem = (item, inSubsection=false) => {
     if (item.type === 'subsection') {
       html += `<h3>${escH(item.data.title)}</h3>`;
-      item.data.items.forEach(renderItem);
+      // Wrappear bullets dentro de subsecciones en <ul>
+      let subInList = false;
+      item.data.items.forEach(sub => {
+        if (sub.type === 'bullet' && !subInList) { html += '<ul>'; subInList = true; }
+        if (sub.type !== 'bullet' && subInList) { html += '</ul>'; subInList = false; }
+        renderItem(sub, true);
+      });
+      if (subInList) html += '</ul>';
     } else if (item.type === 'field') {
       const p = item.text.split(':');
       html += `<p class="field"><strong>${escH(p[0])}:</strong> ${escH(p.slice(1).join(':').trim())}</p>`;
     } else if (item.type === 'text') {
       html += `<p>${escH(item.text)}</p>`;
+    } else if (item.type === 'bullet' && !inSubsection) {
+      html += `<li>${escH(item.text)}</li>`;
     } else if (item.type === 'bullet') {
       html += `<li>${escH(item.text)}</li>`;
     }
@@ -1066,7 +1077,7 @@ function closeModal() {
   // surveyShown se setea true solo al enviar — omitir no cuenta como "visto"
   if (!surveyShown && messageCount >= SURVEY_THRESHOLD) {
     setTimeout(() => {
-      if (!surveyShown) {  // re-check en el timeout por si envió mientras tanto
+      if (!surveyShown && !isLoading) {  // no re-mostrar durante carga
         $('surveyFloatBtn').style.display = '';
         $('surveyFloatBtn').classList.add('visible');
       }
@@ -1110,7 +1121,7 @@ function updateResumeBtn() {
   const showResume = messageCount >= RESUME_THRESHOLD && !isLoading && activeFlow !== 'resumen';
   const showSurvey = messageCount >= SURVEY_THRESHOLD && !surveyShown && !isLoading;
   $('resumeBtn').classList.toggle('visible', showResume);
-  if (showSurvey) $('surveyFloatBtn').classList.add('visible');
+  if (showSurvey && !$('surveyFloatBtn').classList.contains('visible')) $('surveyFloatBtn').classList.add('visible');
 }
 
 async function triggerResumen() {
@@ -1201,6 +1212,43 @@ function makeDownloadBtn(content, label='⬇️ Word', cls='download') {
 // appendMessageSafe: alias sin side-effects para restaurar historial
 function appendMessageSafe(text, role) { appendMessage(text, role, true); }
 
+// sendSilent: dispara un mensaje al worker sin agregarlo al historial visible
+// Usado por auto-triggers (_q -> generacion) para no contaminar el contexto del docente
+async function sendSilent(text) {
+  if (isLoading) return;
+  isLoading=true; btn.disabled=true; setChips(true);
+  $('resumeBtn').classList.remove('visible');
+  $('typingRow').classList.add('visible');
+  requestAnimationFrame(() => { msg.scrollTop = msg.scrollHeight; });
+
+  let loadTimer = null;
+  if (activeFlow==='adaptacion')    loadTimer=setTimeout(()=>showToast('Clara está preparando la adaptación… puede tardar hasta 40s ☕',50000),1000);
+  else if (activeFlow==='planificacion') loadTimer=setTimeout(()=>showToast('Clara está armando la planificación…',20000),1000);
+  else if (activeFlow==='esi')      loadTimer=setTimeout(()=>showToast('Clara está preparando la secuencia ESI…',25000),1000);
+
+  try {
+    const reply = await fetchMsg(text);
+    $('typingRow').classList.remove('visible');
+    $('toast').classList.remove('show');
+    appendMessage(reply,'bot');
+    // NO pushear el trigger al historial — solo la respuesta del modelo
+    history.push({role:'model',parts:[{text:reply}]});
+    if (history.length>HISTORY_LIMIT*2) history=history.slice(-HISTORY_LIMIT*2);
+    messageCount++;
+    updateResumeBtn();
+    saveSession();
+  } catch(err) {
+    $('typingRow').classList.remove('visible');
+    const msgs = { rate_limit:'Demasiadas consultas seguidas. Esperá un minuto.', offline:'Sin conexión a internet. Revisá tu red.' };
+    const errText = msgs[err.message] || (err.name==='AbortError' ? 'Clara tardó demasiado. Intentá de nuevo en un momento.' : err.message?.length<120 ? err.message : 'Problema técnico. Intentá de nuevo en un momento.');
+    appendMessage(errText,'bot');
+  } finally {
+    if(loadTimer) clearTimeout(loadTimer);
+    isLoading=false; btn.disabled=inp.value.trim().length===0; setChips(false);
+    updateResumeBtn(); focusInput();
+  }
+}
+
 function appendMessage(text, role, noSideEffects = false) {
   // Plan Anual accumulation + flow advance — suprimido durante restauración
   if (role==='bot' && !noSideEffects) {
@@ -1221,15 +1269,15 @@ function appendMessage(text, role, noSideEffects = false) {
     if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
     if (activeFlow === 'adaptacion_q' && text.includes('Generando la adaptación ahora')) {
       activeFlow = 'adaptacion';
-      Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá la adaptación ahora'); });
+      Promise.resolve().then(() => { if (!isLoading) sendSilent('Generá la adaptación ahora'); });
     }
     if (activeFlow === 'planificacion_q' && text.includes('Generando la planificación ahora')) {
       activeFlow = 'planificacion';
-      Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá la planificación ahora'); });
+      Promise.resolve().then(() => { if (!isLoading) sendSilent('Generá la planificación ahora'); });
     }
     if (activeFlow === 'esi_q' && text.includes('Generando la secuencia ESI ahora')) {
       activeFlow = 'esi';
-      Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá la secuencia ESI ahora'); });
+      Promise.resolve().then(() => { if (!isLoading) sendSilent('Generá la secuencia ESI ahora'); });
     }
   }
 
