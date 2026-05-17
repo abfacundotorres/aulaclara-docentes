@@ -173,6 +173,11 @@
     display: flex;
     animation: floatIn 0.25s ease-out forwards;
   }
+  .float-toast.visible.input-focused {
+    opacity: 0 !important;
+    pointer-events: none;
+    transition: opacity 0.15s;
+  }
   @keyframes floatIn {
     from { opacity: 0; transform: translateX(calc(min(340px, 50vw) - 100% - 14px)) translateY(10px); }
     to   { opacity: 1; transform: translateX(calc(min(340px, 50vw) - 100% - 14px)) translateY(0); }
@@ -719,6 +724,7 @@ let lastDocTitle = '';
 let messageCount = 0;
 let surveyShown  = false;
 let sessionChip  = ''; // chip usado para iniciar la sesión
+let surveyTriggerPending = false; // true cuando se generó un documento completo o se cumplió umbral en consulta libre
 
 // Plan Anual state
 const plan = {
@@ -1080,11 +1086,10 @@ function openModal(docTitle) {
 
 function closeModal() {
   $('surveyModal').classList.remove('visible');
-  // Fix 9: solo re-mostrar si el docente NO envió la encuesta y no la vio antes
-  // surveyShown se setea true solo al enviar — omitir no cuenta como "visto"
-  if (!surveyShown && messageCount >= SURVEY_THRESHOLD) {
+  // Fix 9: solo re-mostrar si el docente NO envió la encuesta y hay trigger activo
+  if (!surveyShown && surveyTriggerPending) {
     setTimeout(() => {
-      if (!surveyShown && !isLoading) {  // no re-mostrar durante carga
+      if (!surveyShown && !isLoading) {
         $('surveyFloatBtn').style.display = '';
         $('surveyFloatBtn').classList.add('visible');
       }
@@ -1115,6 +1120,7 @@ async function submitSurvey() {
     });
   } catch { /* silencioso */ }
   surveyShown = true;
+  surveyTriggerPending = false;
   $('surveyFloatBtn').classList.remove('visible');
   $('surveyFloatBtn').style.display = 'none';
   $('surveyForm').style.display = 'none';
@@ -1126,7 +1132,15 @@ async function submitSurvey() {
 function updateResumeBtn() {
   // No mostrar el botón Resumen mientras se está generando el propio resumen
   const showResume = messageCount >= RESUME_THRESHOLD && !isLoading && activeFlow !== 'resumen';
-  const showSurvey = messageCount >= SURVEY_THRESHOLD && !surveyShown && !isLoading;
+  // Encuesta:
+  // - Flows con documento (planificacion, esi, boletin, adaptacion, plan_anual_*): solo cuando surveyTriggerPending
+  // - general / resumen / otros: después del 4to mensaje
+  const isDocFlow = ['planificacion','esi','boletin','adaptacion',
+    'plan_anual_p0','plan_anual_p1','plan_anual_p2','plan_anual_p3'].includes(activeFlow);
+  const showSurvey = !surveyShown && !isLoading && (
+    surveyTriggerPending ||
+    (!isDocFlow && messageCount >= 4)
+  );
   $('resumeBtn').classList.toggle('visible', showResume);
   if (showSurvey && !$('surveyFloatBtn').classList.contains('visible')) $('surveyFloatBtn').classList.add('visible');
 }
@@ -1284,6 +1298,12 @@ function appendMessage(text, role, noSideEffects = false) {
       Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá el período 3'); });
     }
     if (cleanText.includes('[PERIODO_3]')) { plan.p3=cleanText; updateProgress(3); }
+    // Encuesta: activar surveyTriggerPending cuando se genera un documento completo en flows pertinentes
+    const isDocFlow = ['planificacion','esi','boletin','adaptacion',
+      'plan_anual_p1','plan_anual_p2','plan_anual_p3'].includes(activeFlow);
+    if (isDocFlow && cleanText.includes('[FIN_DOCUMENTO]') && !surveyShown) {
+      surveyTriggerPending = true;
+    }
     if (activeFlow === 'adaptacion_q' && cleanText.includes('Generando la adaptación ahora')) {
       activeFlow = 'adaptacion';
       Promise.resolve().then(() => { if (!isLoading) sendSilent('Generá la adaptación ahora'); });
@@ -1600,7 +1620,7 @@ function handleSend() {
 function resetChat() {
   if(isLoading)return;
   history=[]; activeFlow='general'; plan.reset(); docenteCtx={nombre:'',grado:''};
-  surveyShown=false; sessionChip='';
+  surveyShown=false; sessionChip=''; surveyTriggerPending=false;
   try { localStorage.removeItem(STORAGE_KEY); } catch {}
   $('surveyFloatBtn').style.display='';
   $('surveyFloatBtn').classList.remove('visible');
@@ -1778,6 +1798,12 @@ inp.addEventListener('input',()=>{autoResize();updateChar();});
 inp.addEventListener('focus',()=>{
   document.querySelector('meta[name=viewport]')
     .setAttribute('content','width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no');
+  $('surveyFloatBtn').classList.add('input-focused');
+  $('resumeBtn').classList.add('input-focused');
+});
+inp.addEventListener('blur',()=>{
+  $('surveyFloatBtn').classList.remove('input-focused');
+  $('resumeBtn').classList.remove('input-focused');
 });
 window.addEventListener('online', ()=>setStatus(true));
 window.addEventListener('offline',()=>setStatus(false));
