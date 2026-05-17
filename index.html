@@ -1421,7 +1421,9 @@ function historyPayload() {
       // En flow planificacion: el LLM necesita ver el documento completo para MODO AJUSTE.
       // En otros flows (plan anual): truncar al título es suficiente para no saturar el contexto.
       if (activeFlow === 'planificacion') {
-        truncated = text.slice(0, 6000); // cubre un documento completo sin saturar
+        // 3000 chars cubre estructura completa sin saturar el contexto.
+        // El LLM ve todas las secciones para MODO AJUSTE sin el texto verboso de cada una.
+        truncated = text.slice(0, 3000);
       } else {
         const pm = text.match(/\[PERIODO_(\d)\]/);
         const tm = text.match(/\[TITULO\]\s*([^\n]+)/);
@@ -1588,7 +1590,7 @@ function handleSend() {
   // texto libre (sin [AJUSTE] ya puesto), agregamos el prefijo automáticamente.
   // Esto activa MODO AJUSTE en el worker sin que el docente tenga que saberlo.
   const hasDoc = history.some(t => t.role === 'model' && t.parts[0].text.includes('[FIN_DOCUMENTO]'));
-  if (activeFlow === 'planificacion' && hasDoc && !text.startsWith('[AJUSTE]')) {
+  if (activeFlow === 'planificacion' && hasDoc && !text.startsWith('[AJUSTE]') && !text.startsWith('Rehacé')) {
     text = `[AJUSTE] ${text}`;
   }
   sendMessage(text);
