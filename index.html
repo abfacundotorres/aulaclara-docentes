@@ -142,6 +142,11 @@
   .chip { font-size: 12px; padding: 5px 11px; background: var(--amber-pale); color: var(--brown-mid); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; transition: background 0.15s, opacity 0.15s; font-family: 'DM Sans', system-ui, sans-serif; line-height: 1.4; }
   .chip:hover { background: var(--orange-pale); }
   .chip:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .adjust-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 4px 2px; }
+  .adjust-chip { font-size: 11px; padding: 4px 10px; background: var(--warm-white); color: var(--brown-mid); border: 1px solid var(--orange-light); border-radius: 14px; cursor: pointer; transition: background 0.15s, color 0.15s; font-family: 'DM Sans', system-ui, sans-serif; line-height: 1.4; }
+  .adjust-chip::before { content: '✏️ '; font-size: 10px; }
+  .adjust-chip:hover { background: var(--orange-pale); color: var(--orange); border-color: var(--orange); }
+  .adjust-chip:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
   .toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--brown-dark); color: #FFF8F0; padding: 8px 18px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none; z-index: 100; white-space: nowrap; max-width: 90vw; text-align: center; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -786,6 +791,7 @@ function inline(s) {
 }
 function renderText(raw) {
   const cleaned = raw
+    .replace(/\[CHIPS\][^\n]*\n?/g,'')  // stripear chips antes de renderizar
     .replace(/\[PERIODO_\d\]\s*/g,'')
     .replace(/\[TITULO\]\s*/g,'')
     .replace(/\[SECCION\]\s*/g,'### ')
@@ -1232,7 +1238,9 @@ async function sendSilent(text) {
     $('toast').classList.remove('show');
     appendMessage(reply,'bot');
     // NO pushear el trigger al historial — solo la respuesta del modelo
-    history.push({role:'model',parts:[{text:reply}]});
+    // Stripear [CHIPS] del historial para que no llegue al LLM en la próxima vuelta
+    const replyClean = reply.replace(/\[CHIPS\][^\n]*\n?/g, '').trim();
+    history.push({role:'model',parts:[{text:replyClean}]});
     if (history.length>HISTORY_LIMIT*2) history=history.slice(-HISTORY_LIMIT*2);
     messageCount++;
     updateResumeBtn();
@@ -1250,34 +1258,48 @@ async function sendSilent(text) {
 }
 
 function appendMessage(text, role, noSideEffects = false) {
+  // -- Extraer [CHIPS] antes de cualquier procesamiento --
+  // La línea [CHIPS] es metadata interna: no se muestra al docente, se parsea aparte.
+  let adjustChips = [];
+  const chipsMatch = text.match(/\[CHIPS\]\s*([^\n]+)/);
+  if (chipsMatch) {
+    adjustChips = chipsMatch[1].split('|').map(s => s.trim()).filter(Boolean);
+  }
+  // Texto limpio: sin la línea [CHIPS] completa
+  const cleanText = text.replace(/\[CHIPS\][^\n]*\n?/g, '').trim();
+
   // Plan Anual accumulation + flow advance — suprimido durante restauración
   if (role==='bot' && !noSideEffects) {
-    if (text.includes('[PERIODO_0]')) {
-      plan.p0=text; updateProgress(0); activeFlow='plan_anual_p1';
-      // planNext: espera al next microtask para que appendMessage termine antes
-      // de iniciar el siguiente sendMessage — evita race condition con isLoading
+    if (cleanText.includes('[PERIODO_0]')) {
+      plan.p0=cleanText; updateProgress(0); activeFlow='plan_anual_p1';
       Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá el período 1'); });
     }
-    if (text.includes('[PERIODO_1]')) {
-      plan.p1=text; updateProgress(1); activeFlow='plan_anual_p2';
+    if (cleanText.includes('[PERIODO_1]')) {
+      plan.p1=cleanText; updateProgress(1); activeFlow='plan_anual_p2';
       Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá el período 2'); });
     }
-    if (text.includes('[PERIODO_2]')) {
-      plan.p2=text; updateProgress(2); activeFlow='plan_anual_p3';
+    if (cleanText.includes('[PERIODO_2]')) {
+      plan.p2=cleanText; updateProgress(2); activeFlow='plan_anual_p3';
       Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá el período 3'); });
     }
-    if (text.includes('[PERIODO_3]')) { plan.p3=text; updateProgress(3); }
-    if (activeFlow === 'adaptacion_q' && text.includes('Generando la adaptación ahora')) {
+    if (cleanText.includes('[PERIODO_3]')) { plan.p3=cleanText; updateProgress(3); }
+    if (activeFlow === 'adaptacion_q' && cleanText.includes('Generando la adaptación ahora')) {
       activeFlow = 'adaptacion';
       Promise.resolve().then(() => { if (!isLoading) sendSilent('Generá la adaptación ahora'); });
     }
-    if (activeFlow === 'planificacion_q' && text.includes('Generando la planificación ahora')) {
+    if (activeFlow === 'planificacion_q' && cleanText.includes('Generando la planificación ahora')) {
       activeFlow = 'planificacion';
       Promise.resolve().then(() => { if (!isLoading) sendSilent('Generá la planificación ahora'); });
     }
-    if (activeFlow === 'esi_q' && text.includes('Generando la secuencia ESI ahora')) {
+    if (activeFlow === 'esi_q' && cleanText.includes('Generando la secuencia ESI ahora')) {
       activeFlow = 'esi';
       Promise.resolve().then(() => { if (!isLoading) sendSilent('Generá la secuencia ESI ahora'); });
+    }
+    // Garantizar activeFlow='planificacion' después de generar documento completo.
+    // Esto asegura que los ajustes post-generación lleguen con el prompt correcto
+    // y no caigan en 'general' si algo los reseteó.
+    if (activeFlow === 'planificacion' && cleanText.includes('[FIN_DOCUMENTO]')) {
+      activeFlow = 'planificacion'; // explícito — no dejar que nada lo cambie
     }
   }
 
@@ -1296,7 +1318,8 @@ function appendMessage(text, role, noSideEffects = false) {
   wrap.className = 'bubble-wrap';
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
-  bubble.innerHTML = renderText(text);
+  // Renderizar el texto limpio (sin [CHIPS])
+  bubble.innerHTML = renderText(cleanText);
   wrap.appendChild(bubble);
 
   if (role==='bot') {
@@ -1306,14 +1329,13 @@ function appendMessage(text, role, noSideEffects = false) {
     const cp = document.createElement('button');
     cp.className='action-btn'; cp.innerHTML='📋 Copiar';
     cp.onclick = () => {
-      const plain = text
+      const plain = cleanText
         .replace(/\[TITULO\]\s*/g,'').replace(/\[SECCION\]\s*/g,'')
         .replace(/\[SUBSECCION\]\s*/g,'').replace(/\[CAMPO\]\s*/g,'')
         .replace(/\[TEXTO\]\s*/g,'').replace(/\[LISTA\]\s*/g,'• ')
         .replace(/\[FIN_DOCUMENTO\]/g,'').replace(/\[PERIODO_\d\]\s*/g,'')
         .replace(/\[SEPARADOR\]/g,'\n---\n').trim();
       const doFallback = () => {
-        // Fallback para Android sin clipboard API o contextos HTTP
         try {
           const ta = document.createElement('textarea');
           ta.value = plain;
@@ -1336,25 +1358,46 @@ function appendMessage(text, role, noSideEffects = false) {
     };
     acts.appendChild(cp);
 
-    const hasFin = text.includes('[FIN_DOCUMENTO]');
-    const isP0   = text.includes('[PERIODO_0]');
-    const isP1   = text.includes('[PERIODO_1]');
-    const isP2   = text.includes('[PERIODO_2]');
-    const isP3   = text.includes('[PERIODO_3]');
+    const hasFin = cleanText.includes('[FIN_DOCUMENTO]');
+    const isP0   = cleanText.includes('[PERIODO_0]');
+    const isP1   = cleanText.includes('[PERIODO_1]');
+    const isP2   = cleanText.includes('[PERIODO_2]');
+    const isP3   = cleanText.includes('[PERIODO_3]');
     const isPlan = isP0||isP1||isP2||isP3;
 
     if (hasFin && (isP1||isP2||isP3)) {
       const num = isP1?1:isP2?2:3;
-      acts.appendChild(makeDownloadBtn(text,`⬇️ Período ${num}`));
+      acts.appendChild(makeDownloadBtn(cleanText,`⬇️ Período ${num}`));
     }
     if (isP3 && plan.complete()) {
       acts.appendChild(makeDownloadBtn(plan.fullContent(),'⬇️ Plan Anual completo','download-full'));
     }
     if (hasFin && !isPlan) {
-      acts.appendChild(makeDownloadBtn(text));
+      acts.appendChild(makeDownloadBtn(cleanText));
     }
 
     wrap.appendChild(acts);
+
+    // -- Chips de ajuste contextuales (solo en planificacion con documento completo) --
+    // Se renderizan debajo de los botones de descarga, no dentro de bubble-actions.
+    // Click → sendMessage con el texto del chip, activeFlow ya está en 'planificacion'.
+    if (!noSideEffects && hasFin && !isPlan && adjustChips.length > 0) {
+      const chipRow = document.createElement('div');
+      chipRow.className = 'adjust-chips';
+      adjustChips.forEach(chipText => {
+        const btn = document.createElement('button');
+        btn.className = 'adjust-chip';
+        btn.textContent = chipText;
+        btn.onclick = () => {
+          if (isLoading) return;
+          // Deshabilitar todos los chips de este set una vez que el docente elige uno
+          chipRow.querySelectorAll('.adjust-chip').forEach(b => { b.disabled = true; });
+          sendMessage(chipText);
+        };
+        chipRow.appendChild(btn);
+      });
+      wrap.appendChild(chipRow);
+    }
   }
 
   row.appendChild(av); row.appendChild(wrap);
@@ -1452,7 +1495,9 @@ async function sendMessage(text) {
     $('toast').classList.remove('show');
     appendMessage(reply,'bot');
     history.push(pending);
-    history.push({role:'model',parts:[{text:reply}]});
+    // Stripear [CHIPS] del historial para que no llegue al LLM en la próxima vuelta
+    const replyClean = reply.replace(/\[CHIPS\][^\n]*\n?/g, '').trim();
+    history.push({role:'model',parts:[{text:replyClean}]});
     if (history.length>HISTORY_LIMIT*2) history=history.slice(-HISTORY_LIMIT*2);
     messageCount++;
     updateResumeBtn();
