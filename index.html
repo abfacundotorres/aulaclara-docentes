@@ -1463,9 +1463,21 @@ async function fetchMsg(message, attempt=0) {
     const data = await res.json();
     if (data.error) throw Object.assign(new Error(data.error),{fatal:true});
     if (!data.reply) throw new Error('empty');
-    // Solo actualizar activeFlow desde el Worker si el frontend no lo transicionó ya
-    // a un flow de generación (evita que 'esi_q' pise 'esi' después de la transición)
     if (data.flow && data.flow === activeFlow) activeFlow = data.flow;
+
+    // Output cortado por límite de tokens: reintento silencioso UNA vez.
+    // El worker ya tiene el texto parcial — le pedimos que continúe desde donde cortó.
+    // Solo reintentamos en flows generativos con documento (no en _q ni general).
+    if (data.truncated && attempt === 0 && ['planificacion','adaptacion','esi'].includes(activeFlow)) {
+      showToast('Terminando de generar…', 8000);
+      // Empujamos el parcial al historial temporalmente para que el LLM sepa dónde cortó
+      history.push({ role: 'model', parts: [{ text: data.reply }] });
+      const continuation = await fetchMsg('Continuá exactamente desde donde cortaste, sin repetir nada', 1);
+      // Sacamos el parcial temporal del historial — sendMessage lo va a pushear correctamente
+      history.pop();
+      return data.reply + continuation;
+    }
+
     return data.reply;
   } catch(err) {
     if (err.fatal) throw err;
@@ -1478,8 +1490,6 @@ async function fetchMsg(message, attempt=0) {
     }
     throw err;
   } finally {
-    // Siempre limpiar el timer — evita abort fantasma si la próxima request
-    // reutiliza el mismo ctrl antes de que este timeout venza
     clearTimeout(tmout);
   }
 }
