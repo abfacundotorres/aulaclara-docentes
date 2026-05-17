@@ -792,6 +792,7 @@ function inline(s) {
 function renderText(raw) {
   const cleaned = raw
     .replace(/\[CHIPS\][^\n]*\n?/g,'')  // stripear chips antes de renderizar
+    .replace(/\[FIN_AJUSTE\]/g,'')       // stripear marca de ajuste parcial
     .replace(/\[PERIODO_\d\]\s*/g,'')
     .replace(/\[TITULO\]\s*/g,'')
     .replace(/\[SECCION\]\s*/g,'### ')
@@ -1238,8 +1239,8 @@ async function sendSilent(text) {
     $('toast').classList.remove('show');
     appendMessage(reply,'bot');
     // NO pushear el trigger al historial — solo la respuesta del modelo
-    // Stripear [CHIPS] del historial para que no llegue al LLM en la próxima vuelta
-    const replyClean = reply.replace(/\[CHIPS\][^\n]*\n?/g, '').trim();
+    // Stripear [CHIPS] y [FIN_AJUSTE] del historial para que no lleguen al LLM
+    const replyClean = reply.replace(/\[CHIPS\][^\n]*\n?/g, '').replace(/\[FIN_AJUSTE\]/g, '').trim();
     history.push({role:'model',parts:[{text:replyClean}]});
     if (history.length>HISTORY_LIMIT*2) history=history.slice(-HISTORY_LIMIT*2);
     messageCount++;
@@ -1295,12 +1296,6 @@ function appendMessage(text, role, noSideEffects = false) {
       activeFlow = 'esi';
       Promise.resolve().then(() => { if (!isLoading) sendSilent('Generá la secuencia ESI ahora'); });
     }
-    // Garantizar activeFlow='planificacion' después de generar documento completo.
-    // Esto asegura que los ajustes post-generación lleguen con el prompt correcto
-    // y no caigan en 'general' si algo los reseteó.
-    if (activeFlow === 'planificacion' && cleanText.includes('[FIN_DOCUMENTO]')) {
-      activeFlow = 'planificacion'; // explícito — no dejar que nada lo cambie
-    }
   }
 
   const row = document.createElement('div');
@@ -1333,8 +1328,8 @@ function appendMessage(text, role, noSideEffects = false) {
         .replace(/\[TITULO\]\s*/g,'').replace(/\[SECCION\]\s*/g,'')
         .replace(/\[SUBSECCION\]\s*/g,'').replace(/\[CAMPO\]\s*/g,'')
         .replace(/\[TEXTO\]\s*/g,'').replace(/\[LISTA\]\s*/g,'• ')
-        .replace(/\[FIN_DOCUMENTO\]/g,'').replace(/\[PERIODO_\d\]\s*/g,'')
-        .replace(/\[SEPARADOR\]/g,'\n---\n').trim();
+        .replace(/\[FIN_DOCUMENTO\]/g,'').replace(/\[FIN_AJUSTE\]/g,'')
+        .replace(/\[PERIODO_\d\]\s*/g,'').replace(/\[SEPARADOR\]/g,'\n---\n').trim();
       const doFallback = () => {
         try {
           const ta = document.createElement('textarea');
@@ -1358,7 +1353,8 @@ function appendMessage(text, role, noSideEffects = false) {
     };
     acts.appendChild(cp);
 
-    const hasFin = cleanText.includes('[FIN_DOCUMENTO]');
+    const hasFin    = cleanText.includes('[FIN_DOCUMENTO]');
+    const hasAjuste = cleanText.includes('[FIN_AJUSTE]');
     const isP0   = cleanText.includes('[PERIODO_0]');
     const isP1   = cleanText.includes('[PERIODO_1]');
     const isP2   = cleanText.includes('[PERIODO_2]');
@@ -1372,27 +1368,38 @@ function appendMessage(text, role, noSideEffects = false) {
     if (isP3 && plan.complete()) {
       acts.appendChild(makeDownloadBtn(plan.fullContent(),'⬇️ Plan Anual completo','download-full'));
     }
-    if (hasFin && !isPlan) {
+    // hasFin && !isPlan → documento completo → botones de descarga
+    // hasAjuste → sección parcial → sin descarga (solo Copiar ya incluido)
+    if (hasFin && !isPlan && !hasAjuste) {
       acts.appendChild(makeDownloadBtn(cleanText));
     }
 
     wrap.appendChild(acts);
 
-    // -- Chips de ajuste contextuales (solo en planificacion con documento completo) --
-    // Se renderizan debajo de los botones de descarga, no dentro de bubble-actions.
-    // Click → sendMessage con el texto del chip, activeFlow ya está en 'planificacion'.
-    if (!noSideEffects && hasFin && !isPlan && adjustChips.length > 0) {
+    // -- Chips de ajuste contextuales --
+    // (a) Documento completo: chips generados por el LLM vía [CHIPS]
+    // (b) Respuesta de ajuste [FIN_AJUSTE]: chips genéricos de continuación
+    //     (el LLM no genera [CHIPS] en modo ajuste por instrucción explícita)
+    const chipsParaMostrar = adjustChips.length > 0
+      ? adjustChips
+      : hasAjuste
+        ? ['Acortá más', 'Hacé el inicio diferente', 'Agregá ESI', 'Rehacé toda la planificación']
+        : [];
+    if (!noSideEffects && (hasFin || hasAjuste) && !isPlan && chipsParaMostrar.length > 0) {
       const chipRow = document.createElement('div');
       chipRow.className = 'adjust-chips';
-      adjustChips.forEach(chipText => {
+      chipsParaMostrar.forEach(chipText => {
         const btn = document.createElement('button');
         btn.className = 'adjust-chip';
         btn.textContent = chipText;
         btn.onclick = () => {
           if (isLoading) return;
-          // Deshabilitar todos los chips de este set una vez que el docente elige uno
           chipRow.querySelectorAll('.adjust-chip').forEach(b => { b.disabled = true; });
-          sendMessage(chipText);
+          // "Rehacé toda la planificación" no lleva prefijo [AJUSTE] — regenera completo
+          const msg = chipText === 'Rehacé toda la planificación'
+            ? 'Rehacé la planificación completa'
+            : `[AJUSTE] ${chipText}`;
+          sendMessage(msg);
         };
         chipRow.appendChild(btn);
       });
@@ -1411,11 +1418,17 @@ function historyPayload() {
     const text = t.parts[0].text;
     let truncated;
     if (isDoc(text)) {
-      const pm = text.match(/\[PERIODO_(\d)\]/);
-      const tm = text.match(/\[TITULO\]\s*([^\n]+)/);
-      const p  = pm ? `[PERIODO_${pm[1]}]` : '';
-      const tt = tm ? tm[1].trim() : 'documento';
-      truncated = `${p}[TITULO] ${tt}`;
+      // En flow planificacion: el LLM necesita ver el documento completo para MODO AJUSTE.
+      // En otros flows (plan anual): truncar al título es suficiente para no saturar el contexto.
+      if (activeFlow === 'planificacion') {
+        truncated = text.slice(0, 6000); // cubre un documento completo sin saturar
+      } else {
+        const pm = text.match(/\[PERIODO_(\d)\]/);
+        const tm = text.match(/\[TITULO\]\s*([^\n]+)/);
+        const p  = pm ? `[PERIODO_${pm[1]}]` : '';
+        const tt = tm ? tm[1].trim() : 'documento';
+        truncated = `${p}[TITULO] ${tt}`;
+      }
     } else {
       truncated = t.role==='user'
         ? text.slice(0,1000)
@@ -1476,7 +1489,9 @@ async function sendMessage(text) {
   if (!text.trim()||isLoading) return;
   isLoading=true; btn.disabled=true; setChips(true);
   $('resumeBtn').classList.remove('visible');
-  appendMessage(text,'user');
+  // Mostrar al usuario el texto sin prefijo [AJUSTE] — es metadata interna del worker
+  const displayText = text.startsWith('[AJUSTE] ') ? text.slice('[AJUSTE] '.length) : text;
+  appendMessage(displayText,'user');
   $('typingRow').classList.add('visible');
   requestAnimationFrame(() => { msg.scrollTop = msg.scrollHeight; });
 
@@ -1487,16 +1502,16 @@ async function sendMessage(text) {
   else if (activeFlow==='planificacion')   loadTimer=setTimeout(()=>showToast('Clara está armando la planificación…',20000),1000);
   else if (activeFlow==='esi')             loadTimer=setTimeout(()=>showToast('Clara está preparando la secuencia ESI…',25000),1000);
 
-  extractDocenteCtx(text);
-  const pending = {role:'user',parts:[{text}]};
+  extractDocenteCtx(displayText);
+  const pending = {role:'user',parts:[{text:displayText}]};
   try {
     const reply = await fetchMsg(text);
     $('typingRow').classList.remove('visible');
     $('toast').classList.remove('show');
     appendMessage(reply,'bot');
     history.push(pending);
-    // Stripear [CHIPS] del historial para que no llegue al LLM en la próxima vuelta
-    const replyClean = reply.replace(/\[CHIPS\][^\n]*\n?/g, '').trim();
+    // Stripear [CHIPS] y [FIN_AJUSTE] del historial para que no lleguen al LLM
+    const replyClean = reply.replace(/\[CHIPS\][^\n]*\n?/g, '').replace(/\[FIN_AJUSTE\]/g, '').trim();
     history.push({role:'model',parts:[{text:replyClean}]});
     if (history.length>HISTORY_LIMIT*2) history=history.slice(-HISTORY_LIMIT*2);
     messageCount++;
@@ -1561,9 +1576,16 @@ function sendSuggestion(text, chip) {
 }
 
 function handleSend() {
-  const text=inp.value.trim();
+  let text = inp.value.trim();
   if(!text||isLoading)return;
   inp.value=''; autoResize(); updateChar();
+  // Si estamos en flow planificacion con documento ya generado y el docente escribe
+  // texto libre (sin [AJUSTE] ya puesto), agregamos el prefijo automáticamente.
+  // Esto activa MODO AJUSTE en el worker sin que el docente tenga que saberlo.
+  const hasDoc = history.some(t => t.role === 'model' && t.parts[0].text.includes('[FIN_DOCUMENTO]'));
+  if (activeFlow === 'planificacion' && hasDoc && !text.startsWith('[AJUSTE]')) {
+    text = `[AJUSTE] ${text}`;
+  }
   sendMessage(text);
 }
 
