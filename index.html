@@ -519,6 +519,13 @@
         </div>
       </div>
       <div class="d-top-right">
+        <select id="dSchoolFilter" onchange="dApplyFilter()" style="
+          padding:8px 12px; border-radius:8px; border:1px solid rgba(245,236,216,0.2);
+          background:#1E1915; color:#F5ECD8; font-family:inherit; font-size:12px;
+          cursor:pointer; outline:none;
+        ">
+          <option value="__ALL__">Todas las escuelas</option>
+        </select>
         <span class="d-last" id="dLastUpdate">Cargando…</span>
         <button class="d-btn d-btn-refresh" id="dRefreshBtn" onclick="dLoadData()">
           <span class="d-ri">↺</span> Actualizar
@@ -536,6 +543,12 @@
       <div class="d-kpi" style="--da:#7B6FD4"><div class="d-kpi-icon">⏱️</div><div class="d-kpi-label">Tiempo ahorrado est.</div><div class="d-kpi-val" id="dKpiTiempo">—</div><div class="d-kpi-sub" id="dKpiTiempoSub">Horas totales</div></div>
     </div>
 
+    <!-- v59: Card de comparativa por escuela (solo se muestra cuando NO hay filtro aplicado) -->
+    <div class="d-card" id="dSchoolsCard" style="margin-bottom:10px;">
+      <div class="d-card-title">Uso por escuela</div>
+      <div class="d-bar-list" id="dSchools"><div class="d-empty"><div class="d-empty-icon">🏫</div><div class="d-empty-text">Sin datos</div></div></div>
+    </div>
+
     <div class="d-row2">
       <div class="d-card"><div class="d-card-title">Herramientas más usadas</div><div class="d-bar-list" id="dChips"><div class="d-empty"><div class="d-empty-icon">📊</div><div class="d-empty-text">Sin datos</div></div></div></div>
       <div class="d-card"><div class="d-card-title">¿Pudieron usar el documento?</div><div class="d-donut-wrap" id="dUso"><div class="d-empty"><div class="d-empty-icon">🍩</div><div class="d-empty-text">Sin datos</div></div></div></div>
@@ -548,8 +561,8 @@
       <div class="d-card-title">Últimas 20 respuestas</div>
       <div class="d-table-wrap">
         <table class="d-table">
-          <thead><tr><th>Fecha</th><th>Herramienta</th><th>Utilidad</th><th class="d-col-tiempo">Tiempo</th><th>Resultado</th></tr></thead>
-          <tbody id="dTableBody"><tr><td colspan="5" style="text-align:center;padding:28px;color:rgba(245,236,216,0.3)">Cargando…</td></tr></tbody>
+          <thead><tr><th>Fecha</th><th>Escuela</th><th>Herramienta</th><th>Utilidad</th><th class="d-col-tiempo">Tiempo</th><th>Resultado</th></tr></thead>
+          <tbody id="dTableBody"><tr><td colspan="6" style="text-align:center;padding:28px;color:rgba(245,236,216,0.3)">Cargando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -716,6 +729,7 @@ let history      = [];
 let isLoading    = false;
 let toastTimer   = null;
 let sessionPin   = null;
+let schoolName   = ''; // v59: nombre de escuela tras login (vacio si PIN no mapeado o dashboard)
 let activeFlow   = 'general';
 let docenteCtx   = { nombre: '', grado: '' };
 let surveyRating = 0;
@@ -924,7 +938,11 @@ async function generateWord(rawContent) {
     if(i>0)children.push(new Paragraph({children:[new PageBreak()]}));
     children.push(new Paragraph({heading:HeadingLevel.HEADING_1,children:[new TextRun({text:d.titulo,bold:true,size:34,font:'Arial'})],spacing:{after:200}}));
     children.push(new Paragraph({border:{bottom:{style:BorderStyle.SINGLE,size:8,color:'D95F1A',space:1}},spacing:{after:160},children:[]}));
-    children.push(new Paragraph({children:[new TextRun({text:`Generado por Aula Clara · ${new Date().toLocaleDateString('es-AR')}`,size:18,color:'C47A3A',font:'Arial',italics:true})],spacing:{after:320}}));
+    // v59: subtitulo con escuela (si esta disponible) - convierte cada doc en visible para el programa municipal
+    const subTxt = schoolName
+      ? `${schoolName} · Programa Aula Clara · Municipalidad de Jesús María · ${new Date().toLocaleDateString('es-AR')}`
+      : `Generado por Aula Clara · ${new Date().toLocaleDateString('es-AR')}`;
+    children.push(new Paragraph({children:[new TextRun({text:subTxt,size:18,color:'C47A3A',font:'Arial',italics:true})],spacing:{after:320}}));
     d.sections.forEach(sec => {
       children.push(new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:sec.title,bold:true,size:26,font:'Arial',color:'D95F1A'})],spacing:{before:320,after:100}}));
       sec.items.forEach(pushItem);
@@ -1013,7 +1031,11 @@ function generatePDF(rawContent) {
   docs.forEach((d, i) => {
     if (i > 0) html += '<div style="page-break-before:always"></div>';
     html += `<h1>${escH(d.titulo)}</h1>`;
-    html += `<div class="generated">Generado por Aula Clara · ${new Date().toLocaleDateString('es-AR')}</div>`;
+    // v59: subtitulo con escuela (si esta disponible)
+    const subTxt = schoolName
+      ? `${escH(schoolName)} · Programa Aula Clara · Municipalidad de Jesús María · ${new Date().toLocaleDateString('es-AR')}`
+      : `Generado por Aula Clara · ${new Date().toLocaleDateString('es-AR')}`;
+    html += `<div class="generated">${subTxt}</div>`;
     d.sections.forEach(sec => {
       html += `<h2>${escH(sec.title)}</h2>`;
       let inList = false;
@@ -1027,7 +1049,11 @@ function generatePDF(rawContent) {
     html += `<div class="obs"><div class="obs-label">Observaciones:</div>
       <div class="obs-line"></div><div class="obs-line"></div><div class="obs-line"></div></div>`;
   });
-  html += `<div class="footer">Aula Clara · aulaclara.com.ar</div></body></html>`;
+  // v59: footer con identificador del programa
+  const footerTxt = schoolName
+    ? `Aula Clara · Programa educativo de la Municipalidad de Jesús María`
+    : `Aula Clara · aulaclara.com.ar`;
+  html += `<div class="footer">${escH(footerTxt)}</div></body></html>`;
 
   // Estrategia de impresión/descarga:
   // 1. Intentar window.open (desktop Chrome/Firefox)
@@ -1109,7 +1135,7 @@ async function submitSurvey() {
         tipo:       'encuesta',
         timestamp:  new Date().toISOString(),
         session_id: SESSION_ID,
-        municipio:  sessionPin  || 'demo',
+        pin:        sessionPin,  // v59.1: el worker usa pin para resolver escuela/municipio
         flow:       activeFlow,
         chip_usado: sessionChip || activeFlow,
         documento:  lastDocTitle,
@@ -1167,7 +1193,8 @@ function logDownload(docTitle) {
     body: JSON.stringify({
       _survey: false, tipo: 'evento',
       timestamp: new Date().toISOString(),
-      session_id: SESSION_ID, municipio: sessionPin || 'demo',
+      session_id: SESSION_ID,
+      pin: sessionPin,  // v59.1: worker usa pin para resolver escuela/municipio
       flow: activeFlow, chip_usado: sessionChip || '',
       documento: docTitle,  // Fix 7: campo alineado con AppScript (documento, no doc_descargado)
     }),
@@ -1698,6 +1725,7 @@ function saveSession() {
       sessionChip,
       messageCount,
       surveyShown,
+      schoolName,  // v59: persistir para que el Word/PDF mantenga la escuela tras restore
       savedAt:     Date.now(),
     }));
   } catch { /* storage lleno o bloqueado — ignorar silenciosamente */ }
@@ -1722,6 +1750,9 @@ function restoreSession() {
     sessionChip  = s.sessionChip || '';
     messageCount = s.messageCount || 0;
     surveyShown  = s.surveyShown  || false;
+    // v59: restaurar schoolName solo si NO vino del ping actual
+    // (el submitPin ya lo seteo con el valor fresco del worker; no pisarlo con el persistido si difiere)
+    if (s.schoolName && !schoolName) schoolName = s.schoolName;
     return history.length > 0;
   } catch { return false; }
 }
@@ -1768,6 +1799,7 @@ async function submitPin() {
     } else {
       // PIN de docente → chat normal
       sessionPin=pin;
+      schoolName = data.escuela || ''; // v59: nombre legible de escuela (puede ser '' si PIN no mapeado)
       $('pinScreen').style.display='none';
       $('mainPage').style.display='flex';
       if (restoreSession()) {
@@ -1847,6 +1879,9 @@ function dEmpty(icon) {
   return `<div class="d-empty"><div class="d-empty-icon">${icon}</div><div class="d-empty-text">Sin datos aún</div></div>`;
 }
 
+// v59: cache global de rows para permitir filtrado client-side sin refetch
+let dAllRows = [];
+
 async function dLoadData() {
   const btn = $('dRefreshBtn');
   btn.classList.add('loading');
@@ -1863,8 +1898,11 @@ async function dLoadData() {
     if (!res.ok || !data.ok) {
       throw new Error(data.error || 'Error del servidor (HTTP ' + res.status + ')');
     }
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-    dRenderAll(rows, data);
+    dAllRows = Array.isArray(data.rows) ? data.rows : [];
+    // v59: poblar selector de escuelas a partir de los datos
+    dPopulateSchoolFilter(dAllRows);
+    // Aplicar filtro actual (default: todas)
+    dApplyFilter();
     $('dLastUpdate').textContent = 'Act. ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
   } catch(e) {
     // Distinguir error de red de error de configuración
@@ -1876,6 +1914,43 @@ async function dLoadData() {
   } finally {
     btn.classList.remove('loading');
   }
+}
+
+// v59: indice de columna donde Apps Script escribe el nombre de escuela
+// Cambiar si en el sheet la columna queda en otra posicion
+const D_COL_ESCUELA = 10;
+
+function dGetEscuela(r) {
+  // Defensivo: convertir a string, trim, fallback a '(sin asignar)'
+  return String(r[D_COL_ESCUELA] || '').trim() || '(sin asignar)';
+}
+
+function dPopulateSchoolFilter(rows) {
+  const sel = $('dSchoolFilter');
+  // Conservar el value seleccionado actual si existe (para no perder filtro al refrescar)
+  const current = sel.value;
+  const escuelas = [...new Set(rows.map(dGetEscuela))].sort((a,b) => a.localeCompare(b,'es'));
+  sel.innerHTML = '<option value="__ALL__">Todas las escuelas</option>' +
+    escuelas.map(e => `<option value="${dEsc(e)}">${dEsc(e)}</option>`).join('');
+  // Restaurar seleccion si todavia existe en la lista
+  if (current && [...sel.options].some(o => o.value === current)) {
+    sel.value = current;
+  }
+}
+
+function dApplyFilter() {
+  const sel = $('dSchoolFilter');
+  const filter = sel.value;
+  const isFiltered = filter !== '__ALL__';
+  const filtered = isFiltered
+    ? dAllRows.filter(r => dGetEscuela(r) === filter)
+    : dAllRows;
+  // Mostrar/ocultar card de comparativa por escuela
+  $('dSchoolsCard').style.display = isFiltered ? 'none' : 'block';
+  dRenderAll(filtered, { total: filtered.length });
+  // Si hay filtro, renderizar tambien card de escuelas con datos globales (no filtrados)
+  // para que el municipio vea siempre el panorama comparativo aunque haya bajado a una escuela
+  if (!isFiltered) dRenderSchools(dAllRows);
 }
 
 function dRenderAll(rows, data) {
@@ -1970,13 +2045,42 @@ function dRenderTimeline(rows) {
   $('dTlLabels').innerHTML=keys.map((k,i)=>{const p=k.split('/'),show=(i%3===0||i===keys.length-1)?p[0]+'/'+p[1]:'';return `<div class="d-tl-lbl">${show}</div>`;}).join('');
 }
 
+// v59: bar chart comparativo de uso por escuela
+// Muestra: nombre escuela | barra usos | total | promedio utilidad
+function dRenderSchools(rows) {
+  const byEscuela = {};
+  rows.forEach(r => {
+    const e = dGetEscuela(r);
+    if (!byEscuela[e]) byEscuela[e] = { count: 0, utilSum: 0, utilN: 0 };
+    byEscuela[e].count++;
+    const u = Number(r[5]);
+    if (u >= 1 && u <= 5) { byEscuela[e].utilSum += u; byEscuela[e].utilN++; }
+  });
+  const sorted = Object.entries(byEscuela).sort((a,b) => b[1].count - a[1].count);
+  const max = sorted[0]?.[1].count || 1;
+  const el = $('dSchools');
+  if (!sorted.length) { el.innerHTML = dEmpty('🏫'); return; }
+  const colors = ['#E06820','#E8A830','#7DC45E','#F28C4E','#7B6FD4','#4E9BB5','#D46F7B','#8FB55A','#A87CC8'];
+  el.innerHTML = sorted.map(([lbl, stats], i) => {
+    const avg = stats.utilN ? (stats.utilSum/stats.utilN).toFixed(1) : '—';
+    const fillWidth = Math.round(stats.count/max*100);
+    return `
+      <div class="d-bar-row">
+        <div class="d-bar-lbl" title="${dEsc(lbl)}" style="width:120px;">${dEsc(lbl)}</div>
+        <div class="d-bar-track"><div class="d-bar-fill" style="width:${fillWidth}%;background:${colors[i%colors.length]}"></div></div>
+        <div class="d-bar-n">${stats.count} · ⭐${avg}</div>
+      </div>`;
+  }).join('');
+}
+
 function dRenderTable(rows) {
   const tbody=$('dTableBody');
   const recent=rows.slice(-20).reverse();
-  if(!recent.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:28px;color:rgba(245,236,216,0.3)">Sin registros aún</td></tr>`;return;}
+  if(!recent.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:28px;color:rgba(245,236,216,0.3)">Sin registros aún</td></tr>`;return;}
   const pilCls={'Sí, directo':'d-pill-g','Lo adapté':'d-pill-a','No me sirvió':'d-pill-r'};
   tbody.innerHTML=recent.map(r=>`<tr>
     <td>${dEsc(String(r[0]||''))} ${dEsc(String(r[1]||''))}</td>
+    <td>${dEsc(dGetEscuela(r))}</td>
     <td>${dEsc(String(r[3]||'—'))}</td>
     <td>${r[5]?'★'.repeat(Math.min(5,Number(r[5]))):'—'}</td>
     <td class="d-col-tiempo">${dEsc(String(r[6]||'—'))}</td>
