@@ -694,6 +694,38 @@
     </div>
     <div class="disclaimer">
       Clara puede cometer errores. Verificá la información importante antes de usar los documentos.
+      <span style="margin:0 6px;opacity:.4">·</span>
+      <a href="#" onclick="openPrivacyModal();return false;" style="color:inherit;text-decoration:underline;opacity:.7;cursor:pointer;">Privacidad</a>
+    </div>
+  </div>
+</div>
+
+<!-- v60: Modal de privacidad - accesible desde footer -->
+<div class="modal-overlay" id="privacyModal" role="dialog" aria-modal="true" aria-label="Privacidad" onclick="if(event.target===this)closePrivacyModal()">
+  <div class="modal-card" style="max-width:520px;text-align:left;">
+    <div class="modal-title" style="text-align:center;">🔒 Cómo cuida tu privacidad Aula Clara</div>
+    <div class="modal-sub" style="text-align:center;">Última actualización: mayo 2026</div>
+    <div style="font-size:13px;line-height:1.6;color:var(--brown-dark);max-height:60vh;overflow-y:auto;padding:0 4px;">
+
+      <div style="font-weight:600;margin:8px 0 6px;color:var(--brown-dark);">Boletines y adaptaciones (datos sensibles)</div>
+      <p style="margin:0 0 12px;">Lo que escribís sobre alumnos en estos flujos <strong>no se guarda en el navegador</strong> entre sesiones. Si cerrás esta ventana, todo se borra. Te recomendamos usar iniciales (M.L., J.P.) en vez de nombres completos.</p>
+
+      <div style="font-weight:600;margin:8px 0 6px;color:var(--brown-dark);">Planificaciones, plan anual y consulta libre</div>
+      <p style="margin:0 0 12px;">Estos documentos no contienen datos personales identificables, así que se guardan localmente por 12 horas para que puedas continuar mañana donde lo dejaste.</p>
+
+      <div style="font-weight:600;margin:8px 0 6px;color:var(--brown-dark);">Qué pasa con los datos al enviarlos</div>
+      <p style="margin:0 0 12px;">Viajan cifrados a nuestros servidores y a los modelos de IA (Google Gemini y Groq). <strong>Estos proveedores no usan los datos para entrenar sus modelos</strong> bajo nuestro plan de uso profesional. No vendemos ni compartimos datos con terceros.</p>
+
+      <div style="font-weight:600;margin:8px 0 6px;color:var(--brown-dark);">Métricas que registramos</div>
+      <p style="margin:0 0 12px;">Guardamos métricas anónimas de uso (qué herramientas se usan, cuántos documentos se generan, satisfacción) para mejorar Clara y reportar al municipio. <strong>No registramos el contenido de tus conversaciones</strong>, solo qué tipo de tarea hiciste y cuándo.</p>
+
+      <div style="font-weight:600;margin:8px 0 6px;color:var(--brown-dark);">Tu responsabilidad como docente</div>
+      <p style="margin:0 0 12px;">Los documentos que genera Clara son borradores. Revisalos antes de entregarlos a las familias o incorporarlos al legajo del alumno, especialmente nombres y datos específicos.</p>
+
+      <p style="margin:14px 0 4px;font-size:11.5px;color:var(--brown-light);font-style:italic;">Aula Clara es un programa educativo de la Municipalidad de Jesús María. Para consultas sobre privacidad, contactá a tu coordinadora pedagógica.</p>
+    </div>
+    <div class="modal-actions" style="justify-content:center;">
+      <button class="modal-btn primary" onclick="closePrivacyModal()">Entendido</button>
     </div>
   </div>
 </div>
@@ -951,6 +983,17 @@ async function generateWord(rawContent) {
     children.push(new Paragraph({border:{top:{style:BorderStyle.SINGLE,size:4,color:'EDD5B0',space:1}},spacing:{after:100},children:[]}));
     children.push(new Paragraph({children:[new TextRun({text:'Observaciones:',size:20,bold:true,font:'Arial',color:'C47A3A'})],spacing:{after:160}}));
     for(let i=0;i<3;i++) children.push(new Paragraph({border:{bottom:{style:BorderStyle.SINGLE,size:2,color:'EDD5B0',space:1}},spacing:{after:240},children:[new TextRun({text:' ',size:22})]}));
+    // v60: si el flow es sensible (boletin o adaptacion), agregar nota legal al pie
+    if (isSensitiveFlow(activeFlow)) {
+      children.push(new Paragraph({spacing:{before:240},children:[]}));
+      children.push(new Paragraph({
+        children:[new TextRun({
+          text:'Documento generado con asistencia de IA para uso profesional del docente. Verificá nombres, datos y contenido antes de entregar a las familias o incorporar al legajo del alumno.',
+          size:16, color:'8A6A4C', font:'Arial', italics:true
+        })],
+        spacing:{after:100}
+      }));
+    }
   });
 
   const doc = new Document({
@@ -1048,6 +1091,10 @@ function generatePDF(rawContent) {
     });
     html += `<div class="obs"><div class="obs-label">Observaciones:</div>
       <div class="obs-line"></div><div class="obs-line"></div><div class="obs-line"></div></div>`;
+    // v60: si el flow es sensible, agregar nota legal al pie de cada doc
+    if (isSensitiveFlow(activeFlow)) {
+      html += `<div style="margin-top:18px;font-size:8pt;color:#8A6A4C;font-style:italic;line-height:1.4;">Documento generado con asistencia de IA para uso profesional del docente. Verificá nombres, datos y contenido antes de entregar a las familias o incorporar al legajo del alumno.</div>`;
+    }
   });
   // v59: footer con identificador del programa
   const footerTxt = schoolName
@@ -1121,6 +1168,16 @@ function closeModal() {
       }
     }, 4000);
   }
+}
+
+// v60: modal de privacidad
+function openPrivacyModal() {
+  const m = $('privacyModal');
+  if (m) m.classList.add('visible');
+}
+function closePrivacyModal() {
+  const m = $('privacyModal');
+  if (m) m.classList.remove('visible');
 }
 
 async function submitSurvey() {
@@ -1626,6 +1683,13 @@ function sendSuggestion(text, chip) {
   history = [];
   docenteCtx.grado = '';
   sessionChip = chip || '';
+  // v60: entrar a un flow sensible (boletin o adaptacion) purga inmediatamente
+  // cualquier storage previo - aunque sea de otro flow no sensible.
+  // Esto cumple el principio de minimizacion: si vamos a manejar datos personales,
+  // empezamos limpios y sin huellas anteriores en el navegador.
+  if (isSensitiveFlow(activeFlow)) {
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  }
   inp.value=text; autoResize(); updateChar(); handleSend();
 }
 
@@ -1714,8 +1778,22 @@ function closeOnboarding() {
 }
 
 // ── Historial localStorage ──────────────────────────────────────
+// v60: flows que manejan datos personales sensibles - NO se persisten en localStorage
+// Razon: Ley 25.326 art. 4 inc. 7 - retencion solo mientras sea necesaria.
+// El docente puede generar el doc, descargarlo en Word, y los datos NO quedan en el navegador.
+// Incluye variantes _q (recoleccion) y la version final del flow.
+const SENSITIVE_FLOWS = ['boletin', 'adaptacion', 'adaptacion_q'];
+
+function isSensitiveFlow(flow) {
+  return SENSITIVE_FLOWS.includes(flow);
+}
+
 function saveSession() {
   if (!sessionPin) return;
+  // v60: si el flow activo es sensible, NO guardar nada en localStorage.
+  // Si habia un historial guardado de una sesion anterior (no sensible),
+  // lo dejamos como esta - no lo pisamos ni lo borramos hasta que cambie de flow.
+  if (isSensitiveFlow(activeFlow)) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       // No guardar el PIN — el key ya es por dispositivo
@@ -1738,6 +1816,12 @@ function restoreSession() {
     const s = JSON.parse(raw);
     // Sesión válida si tiene menos de 12hs — sin validación de PIN (key ya es por dispositivo)
     if ((Date.now() - s.savedAt) > 12 * 60 * 60 * 1000) {
+      localStorage.removeItem(STORAGE_KEY);
+      return false;
+    }
+    // v60: defensa - si el storage tiene un flow sensible (de una version vieja
+    // anterior a la politica de privacidad), purgar y empezar de cero
+    if (isSensitiveFlow(s.activeFlow)) {
       localStorage.removeItem(STORAGE_KEY);
       return false;
     }
