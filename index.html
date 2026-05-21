@@ -2558,16 +2558,13 @@ function dExportPDF() {
     Aula Clara — Asistente pedagógico con IA para docentes de educación primaria.<br>
     Reporte generado automáticamente desde el panel de uso del programa.
   </div>
-
-<script>
-  // Auto-disparar dialogo de impresion tras carga.
-  // El usuario elige "Guardar como PDF" en el dialogo.
-  // Comentado por defecto - mejor que el usuario apriete el boton manualmente
-  // para no sorprenderlo. Si se quisiera auto, descomentar:
-  // window.addEventListener('load', () => setTimeout(() => window.print(), 400));
-</script>
 </body>
 </html>`;
+// IMPORTANTE: el HTML del reporte NO debe incluir scripts inline.
+// Cualquier tag de cierre de script dentro de un template literal cierra
+// prematuramente el bloque del archivo principal, rompiendo todo el JS.
+// Si se necesita JS en la ventana de impresion, inyectarlo despues del write
+// via w.document.createElement.
 
   // Abrir en ventana nueva con dimensiones razonables
   const w = window.open('', '_blank', 'width=900,height=1100');
