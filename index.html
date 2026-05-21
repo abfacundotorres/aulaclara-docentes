@@ -114,6 +114,10 @@
   .action-btn.download-full { background: var(--green); border-color: var(--green); color: #FFF8F0; font-weight: 500; }
   .action-btn.download-full:hover { background: #2d6624; }
   .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* v62: botón discreto de reportar - solo visible al hacer hover sobre el mensaje, o siempre en mobile */
+  .action-btn.report { opacity: 0.4; padding: 4px 8px; border-color: transparent; }
+  .action-btn.report:hover { opacity: 1; background: transparent; color: #B05050; border-color: #B05050; }
+  .action-btn.report.reported { opacity: 1; color: #5A9E40; border-color: transparent; cursor: default; pointer-events: none; }
 
   .typing-row { display: none; }
   .typing-row.visible { display: flex; }
@@ -526,9 +530,19 @@
         ">
           <option value="__ALL__">Todas las escuelas</option>
         </select>
+        <select id="dMonthFilter" onchange="dApplyFilter()" style="
+          padding:8px 12px; border-radius:8px; border:1px solid rgba(245,236,216,0.2);
+          background:#1E1915; color:#F5ECD8; font-family:inherit; font-size:12px;
+          cursor:pointer; outline:none;
+        ">
+          <option value="__ALL__">Todo el período</option>
+        </select>
         <span class="d-last" id="dLastUpdate">Cargando…</span>
         <button class="d-btn d-btn-refresh" id="dRefreshBtn" onclick="dLoadData()">
           <span class="d-ri">↺</span> Actualizar
+        </button>
+        <button class="d-btn d-btn-refresh" onclick="dExportPDF()" title="Exportar reporte para imprimir o guardar PDF">
+          <span class="d-ri">📄</span> Reporte PDF
         </button>
         <button class="d-btn d-btn-exit" onclick="dExit()">Salir</button>
       </div>
@@ -729,6 +743,48 @@
     </div>
   </div>
 </div>
+
+<!-- v62: Modal de reportar respuesta mala -->
+<div class="modal-overlay" id="reportModal" role="dialog" aria-modal="true" aria-label="Reportar respuesta" onclick="if(event.target===this)closeReportModal()">
+  <div class="modal-card" style="max-width:440px;text-align:left;">
+    <div class="modal-title" style="text-align:center;">👎 ¿Qué estuvo mal?</div>
+    <div class="modal-sub" style="text-align:center;">Tu feedback nos ayuda a mejorar Clara.</div>
+
+    <div style="display:flex;flex-direction:column;gap:6px;margin:6px 0 12px;">
+      <button type="button" class="report-cat" data-cat="incorrecto" onclick="selectReportCat(this)">📕 Información incorrecta o inventada</button>
+      <button type="button" class="report-cat" data-cat="incompleto" onclick="selectReportCat(this)">📒 Faltó información importante</button>
+      <button type="button" class="report-cat" data-cat="formato" onclick="selectReportCat(this)">📐 Formato roto o confuso</button>
+      <button type="button" class="report-cat" data-cat="no_entendio" onclick="selectReportCat(this)">🤔 No entendió lo que pedí</button>
+      <button type="button" class="report-cat" data-cat="off_topic" onclick="selectReportCat(this)">🎭 Respondió otra cosa</button>
+      <button type="button" class="report-cat" data-cat="otro" onclick="selectReportCat(this)">💬 Otro motivo</button>
+    </div>
+
+    <div class="modal-label" style="margin-top:4px;">Comentario adicional (opcional)</div>
+    <textarea id="reportComment" rows="2" maxlength="300" placeholder="Si querés, contanos qué esperabas..."
+      style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--brown-dark);background:var(--bg-soft);resize:none;box-sizing:border-box;"></textarea>
+
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="modal-btn" onclick="closeReportModal()">Cancelar</button>
+      <button class="modal-btn primary" id="reportSubmitBtn" onclick="submitReport()" disabled>Enviar</button>
+    </div>
+  </div>
+</div>
+<style>
+  .report-cat {
+    text-align: left;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-soft);
+    color: var(--brown-dark);
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .report-cat:hover { background: var(--orange-pale); border-color: var(--orange); }
+  .report-cat.selected { background: var(--orange-pale); border-color: var(--orange); color: var(--orange); font-weight: 500; }
+</style>
 
 <script>
 // ── Config ──────────────────────────────────────────────────────
@@ -1180,6 +1236,84 @@ function closePrivacyModal() {
   if (m) m.classList.remove('visible');
 }
 
+// v62: modal de reportar respuesta mala
+// State del reporte actual - referencia al mensaje siendo reportado
+let reportState = { cat: '', historyIdx: -1, flow: '', chip: '', bubbleBtn: null };
+
+function openReportModal(historyIdx, btn) {
+  reportState.cat = '';
+  reportState.historyIdx = historyIdx;
+  reportState.flow = activeFlow;
+  reportState.chip = sessionChip || '';
+  reportState.bubbleBtn = btn;
+  // Reset UI
+  document.querySelectorAll('.report-cat').forEach(b => b.classList.remove('selected'));
+  $('reportComment').value = '';
+  $('reportSubmitBtn').disabled = true;
+  $('reportSubmitBtn').textContent = 'Enviar';
+  const m = $('reportModal');
+  if (m) m.classList.add('visible');
+}
+
+function closeReportModal() {
+  const m = $('reportModal');
+  if (m) m.classList.remove('visible');
+}
+
+function selectReportCat(btn) {
+  document.querySelectorAll('.report-cat').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  reportState.cat = btn.dataset.cat;
+  $('reportSubmitBtn').disabled = false;
+}
+
+async function submitReport() {
+  if (!reportState.cat) return;
+  const sbtn = $('reportSubmitBtn');
+  sbtn.disabled = true; sbtn.textContent = 'Enviando…';
+  const comment = ($('reportComment').value || '').trim().slice(0, 300);
+
+  // Construir payload. NO mandar contenido del mensaje si el flow es sensible.
+  // Para flows no sensibles, mandar fragmentos cortos del intercambio para tener contexto.
+  const flow = reportState.flow;
+  const sensitive = isSensitiveFlow(flow);
+  const idx = reportState.historyIdx;
+  const botMsg = (idx >= 0 && history[idx]?.role === 'model') ? (history[idx].parts?.[0]?.text || '') : '';
+  // El mensaje del docente que disparó esta respuesta es el anterior al bot
+  const userMsg = (idx > 0 && history[idx-1]?.role === 'user') ? (history[idx-1].parts?.[0]?.text || '') : '';
+
+  const payload = {
+    _survey:    true,
+    tipo:       'reporte',
+    timestamp:  new Date().toISOString(),
+    session_id: SESSION_ID,
+    pin:        sessionPin,
+    categoria:  reportState.cat,
+    flow:       flow,
+    chip_usado: reportState.chip,
+    comentario: comment,
+    // Si flow sensible: NO loguear contenido. Solo metadata.
+    // Si no sensible: primeras 100/200 chars como contexto para debugging.
+    user_msg:   sensitive ? '[sensible]' : userMsg.slice(0, 100),
+    bot_msg:    sensitive ? '[sensible]' : botMsg.slice(0, 200),
+  };
+
+  try {
+    await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch { /* silencioso - no critico que llegue */ }
+
+  closeReportModal();
+  // Marcar el botón como reportado en el bubble
+  if (reportState.bubbleBtn) {
+    reportState.bubbleBtn.classList.add('reported');
+    reportState.bubbleBtn.innerHTML = '✓ Gracias';
+  }
+}
+
 async function submitSurvey() {
   const sbtn = $('surveySubmitBtn');
   sbtn.disabled = true; sbtn.textContent = 'Enviando…';
@@ -1478,16 +1612,36 @@ function appendMessage(text, role, noSideEffects = false) {
       acts.appendChild(makeDownloadBtn(cleanText));
     }
 
+    // v62: botón discreto de reportar respuesta mala.
+    // Solo se agrega en mensajes "reales" del bot (no en welcomes/onboarding renderizados como side-effect-free).
+    // El historyIdx se calcula al momento de crear el botón - en ese momento history ya contiene el mensaje.
+    // noSideEffects = true significa que es una restauración o render auxiliar, no un mensaje nuevo.
+    if (!noSideEffects) {
+      // El índice del mensaje actual del bot en history.
+      // Como appendMessage se llama justo después de que history.push agregó el mensaje del bot,
+      // el último elemento de history es el bot recién agregado.
+      const currentIdx = history.length - 1;
+      const reportBtn = document.createElement('button');
+      reportBtn.className = 'action-btn report';
+      reportBtn.innerHTML = '👎';
+      reportBtn.title = 'Reportar respuesta';
+      reportBtn.setAttribute('aria-label', 'Reportar respuesta');
+      reportBtn.onclick = () => openReportModal(currentIdx, reportBtn);
+      acts.appendChild(reportBtn);
+    }
+
     wrap.appendChild(acts);
 
     // -- Chips de ajuste contextuales --
     // (a) Documento completo: chips generados por el LLM vía [CHIPS]
     // (b) Respuesta de ajuste [FIN_AJUSTE]: chips genéricos de continuación
     //     (el LLM no genera [CHIPS] en modo ajuste por instrucción explícita)
+    // v62: en respuestas de ajuste, agregar chip especial "↺ Volver al anterior"
+    //      al principio, para deshacer el ajuste si salió peor.
     const chipsParaMostrar = adjustChips.length > 0
       ? adjustChips
       : hasAjuste
-        ? ['Acortá más', 'Hacé el inicio diferente', 'Agregá ESI', 'Rehacé toda la planificación']
+        ? ['↺ Volver al anterior', 'Acortá más', 'Hacé el inicio diferente', 'Agregá ESI', 'Rehacé toda la planificación']
         : [];
     if (!noSideEffects && (hasFin || hasAjuste) && !isPlan && chipsParaMostrar.length > 0) {
       const chipRow = document.createElement('div');
@@ -1499,6 +1653,11 @@ function appendMessage(text, role, noSideEffects = false) {
         btn.onclick = () => {
           if (isLoading) return;
           chipRow.querySelectorAll('.adjust-chip').forEach(b => { b.disabled = true; });
+          // v62: "Volver al anterior" - elimina el ultimo intercambio (ajuste) sin llamar al worker
+          if (chipText === '↺ Volver al anterior') {
+            undoLastAdjustment();
+            return;
+          }
           // "Rehacé toda la planificación" no lleva prefijo [AJUSTE] — regenera completo
           const msg = chipText === 'Rehacé toda la planificación'
             ? 'Rehacé la planificación completa'
@@ -1514,6 +1673,39 @@ function appendMessage(text, role, noSideEffects = false) {
   row.appendChild(av); row.appendChild(wrap);
   msg.insertBefore(row, $('typingRow'));
   requestAnimationFrame(()=>{ msg.scrollTop=msg.scrollHeight; });
+}
+
+// v62: deshacer ultimo ajuste - elimina el bot ajuste + el user que lo pidio
+// del history y del DOM, dejando al docente en la version anterior del documento.
+function undoLastAdjustment() {
+  // Estructura tipica:
+  //   history[N-1] = model (respuesta del ajuste con FIN_AJUSTE)
+  //   history[N-2] = user ([AJUSTE] ...)
+  // Validar que esto sea cierto antes de eliminar.
+  if (history.length < 2) return;
+  const last = history[history.length - 1];
+  const prev = history[history.length - 2];
+  if (last?.role !== 'model' || prev?.role !== 'user') return;
+  // El user message del [AJUSTE] empieza con "[AJUSTE]" o es "Rehacé la planificación completa"
+  // Solo permitimos undo si es claramente un ajuste, no la generacion original.
+  const userText = prev.parts?.[0]?.text || '';
+  if (!userText.startsWith('[AJUSTE]') && !userText.startsWith('Rehacé')) return;
+  // Eliminar del history
+  history.splice(history.length - 2, 2);
+  // Eliminar del DOM las dos ultimas burbujas (user + bot)
+  // msg-row es la clase que envuelve cada mensaje
+  // msg es la variable global que apunta al contenedor #messages
+  const rows = msg.querySelectorAll('.msg-row');
+  // El typingRow es el ultimo siempre; lo ignoramos
+  const realRows = [...rows].filter(r => r.id !== 'typingRow');
+  if (realRows.length >= 2) {
+    realRows[realRows.length - 1].remove(); // bot (ajuste)
+    realRows[realRows.length - 2].remove(); // user ([AJUSTE])
+  }
+  // Persistir el cambio (en flows no sensibles)
+  saveSession();
+  // Volver foco al input
+  focusInput();
 }
 
 // ── History payload ─────────────────────────────────────────────
@@ -1985,6 +2177,7 @@ async function dLoadData() {
     dAllRows = Array.isArray(data.rows) ? data.rows : [];
     // v59: poblar selector de escuelas a partir de los datos
     dPopulateSchoolFilter(dAllRows);
+    dPopulateMonthFilter(dAllRows);  // v62: filtro por mes
     // Aplicar filtro actual (default: todas)
     dApplyFilter();
     $('dLastUpdate').textContent = 'Act. ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
@@ -2022,19 +2215,58 @@ function dPopulateSchoolFilter(rows) {
   }
 }
 
+// v62: extrae mes-año "MM/YYYY" desde la fecha de la fila (columna 0, formato DD/MM/YYYY)
+function dGetMonthKey(r) {
+  const fecha = String(r[0] || '');
+  const m = fecha.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return '';
+  return `${m[2].padStart(2,'0')}/${m[3]}`;
+}
+
+function dMonthLabel(key) {
+  if (!key) return '';
+  const [mm, yyyy] = key.split('/');
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const idx = parseInt(mm,10) - 1;
+  return `${meses[idx] || mm} ${yyyy}`;
+}
+
+function dPopulateMonthFilter(rows) {
+  const sel = $('dMonthFilter');
+  const current = sel.value;
+  // Set de meses únicos, ordenados descendente (mes más reciente arriba)
+  const meses = [...new Set(rows.map(dGetMonthKey).filter(Boolean))].sort((a,b) => {
+    const [am, ay] = a.split('/').map(Number);
+    const [bm, by] = b.split('/').map(Number);
+    return (by - ay) || (bm - am);
+  });
+  sel.innerHTML = '<option value="__ALL__">Todo el período</option>' +
+    meses.map(k => `<option value="${k}">${dEsc(dMonthLabel(k))}</option>`).join('');
+  if (current && [...sel.options].some(o => o.value === current)) {
+    sel.value = current;
+  }
+}
+
 function dApplyFilter() {
   const sel = $('dSchoolFilter');
-  const filter = sel.value;
-  const isFiltered = filter !== '__ALL__';
-  const filtered = isFiltered
-    ? dAllRows.filter(r => dGetEscuela(r) === filter)
-    : dAllRows;
-  // Mostrar/ocultar card de comparativa por escuela
-  $('dSchoolsCard').style.display = isFiltered ? 'none' : 'block';
+  const monthSel = $('dMonthFilter');
+  const schoolFilter = sel.value;
+  const monthFilter = monthSel ? monthSel.value : '__ALL__';
+  const isSchoolFiltered = schoolFilter !== '__ALL__';
+  const isMonthFiltered = monthFilter !== '__ALL__';
+
+  let filtered = dAllRows;
+  if (isSchoolFiltered) filtered = filtered.filter(r => dGetEscuela(r) === schoolFilter);
+  if (isMonthFiltered) filtered = filtered.filter(r => dGetMonthKey(r) === monthFilter);
+
+  // Mostrar/ocultar card de comparativa por escuela (solo cuando no hay filtro de escuela)
+  $('dSchoolsCard').style.display = isSchoolFiltered ? 'none' : 'block';
   dRenderAll(filtered, { total: filtered.length });
-  // Si hay filtro, renderizar tambien card de escuelas con datos globales (no filtrados)
-  // para que el municipio vea siempre el panorama comparativo aunque haya bajado a una escuela
-  if (!isFiltered) dRenderSchools(dAllRows);
+  // Card de escuelas: si no hay filtro de escuela, mostrar comparativa (aplica filtro de mes si hay)
+  if (!isSchoolFiltered) {
+    const baseForSchools = isMonthFiltered ? dAllRows.filter(r => dGetMonthKey(r) === monthFilter) : dAllRows;
+    dRenderSchools(baseForSchools);
+  }
 }
 
 function dRenderAll(rows, data) {
@@ -2170,6 +2402,183 @@ function dRenderTable(rows) {
     <td class="d-col-tiempo">${dEsc(String(r[6]||'—'))}</td>
     <td>${r[7]?`<span class="d-pill ${pilCls[r[7]]||'d-pill-a'}">${dEsc(String(r[7]))}</span>`:'—'}</td>
   </tr>`).join('');
+}
+
+// v62: export PDF mensual del dashboard.
+// Estrategia: abrir ventana nueva con HTML estilizado para impresion y disparar window.print().
+// El usuario elige "Guardar como PDF" en el dialogo de impresion.
+// Esto no requiere dependencias nuevas (html2canvas/jsPDF) y produce un PDF tipograficamente
+// limpio en cualquier navegador moderno.
+function dExportPDF() {
+  // Calcular los mismos datos que el dashboard muestra ahora
+  const schoolSel = $('dSchoolFilter');
+  const monthSel = $('dMonthFilter');
+  const schoolFilter = schoolSel.value;
+  const monthFilter = monthSel ? monthSel.value : '__ALL__';
+  const isSchoolFiltered = schoolFilter !== '__ALL__';
+  const isMonthFiltered = monthFilter !== '__ALL__';
+
+  let rows = dAllRows;
+  if (isSchoolFiltered) rows = rows.filter(r => dGetEscuela(r) === schoolFilter);
+  if (isMonthFiltered) rows = rows.filter(r => dGetMonthKey(r) === monthFilter);
+
+  if (!rows.length) {
+    dErr('No hay datos para exportar con los filtros actuales');
+    setTimeout(() => dErr(''), 3000);
+    return;
+  }
+
+  // Calcular metricas
+  const total = rows.length;
+  const utils = rows.map(r => Number(r[5])).filter(Boolean);
+  const utilAvg = utils.length ? (utils.reduce((a,b)=>a+b,0)/utils.length).toFixed(1) : '—';
+  const usos = {};
+  rows.forEach(r => { const u = String(r[7]||''); if (u) usos[u] = (usos[u]||0) + 1; });
+  const pctSi = total ? Math.round(((usos['Sí, directo']||0) / total) * 100) : 0;
+  // Tiempo ahorrado total
+  const tiempoMap = { 'Menos de 15 min': 15, '30 minutos': 30, '1 hora': 60, 'Más de 2 horas': 120 };
+  const tiempoMin = rows.reduce((sum, r) => sum + (tiempoMap[r[6]] || 0), 0);
+  const tiempoHoras = (tiempoMin / 60).toFixed(0);
+
+  // Chips
+  const chips = {};
+  rows.forEach(r => { const c = String(r[3]||''); if (c) chips[c] = (chips[c]||0) + 1; });
+  const chipsSorted = Object.entries(chips).sort((a,b) => b[1]-a[1]).slice(0, 8);
+
+  // Escuelas
+  const escuelas = {};
+  const escuelasUtil = {};
+  rows.forEach(r => {
+    const e = dGetEscuela(r);
+    escuelas[e] = (escuelas[e]||0) + 1;
+    const u = Number(r[5]);
+    if (u >= 1 && u <= 5) {
+      if (!escuelasUtil[e]) escuelasUtil[e] = { sum: 0, n: 0 };
+      escuelasUtil[e].sum += u; escuelasUtil[e].n++;
+    }
+  });
+  const escuelasSorted = Object.entries(escuelas).sort((a,b) => b[1]-a[1]);
+
+  // Periodo
+  const periodoLbl = isMonthFiltered ? dMonthLabel(monthFilter) : 'Todo el período';
+  const escuelaLbl = isSchoolFiltered ? schoolFilter : 'Todas las escuelas';
+  const generadoEl = new Date().toLocaleString('es-AR', {
+    day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
+  });
+
+  // Tabla escuelas
+  const escuelasHTML = escuelasSorted.map(([e, n]) => {
+    const u = escuelasUtil[e];
+    const avg = u && u.n ? (u.sum/u.n).toFixed(1) : '—';
+    return `<tr><td>${dEsc(e)}</td><td style="text-align:right">${n}</td><td style="text-align:right">${avg}</td></tr>`;
+  }).join('');
+
+  // Tabla chips
+  const chipsHTML = chipsSorted.map(([c, n]) => {
+    return `<tr><td>${dEsc(c)}</td><td style="text-align:right">${n}</td></tr>`;
+  }).join('');
+
+  // Construir HTML del reporte. Optimizado para impresion A4.
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reporte Aula Clara — ${dEsc(periodoLbl)}</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #2A1F18; margin: 0; padding: 0; font-size: 11pt; line-height: 1.45; }
+  .header { border-bottom: 3px solid #D95F1A; padding-bottom: 12px; margin-bottom: 20px; }
+  .header h1 { margin: 0 0 4px; font-size: 22pt; color: #2A1F18; font-weight: 700; }
+  .header .sub { color: #8A6A4C; font-size: 11pt; }
+  .header .meta { color: #B05050; font-size: 9pt; margin-top: 8px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0 24px; }
+  .kpi { border: 1px solid #EDD5B0; border-radius: 8px; padding: 12px; }
+  .kpi-label { font-size: 9pt; color: #8A6A4C; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  .kpi-val { font-size: 20pt; font-weight: 700; color: #D95F1A; }
+  .kpi-sub { font-size: 9pt; color: #5A4A3C; margin-top: 2px; }
+  h2 { font-size: 13pt; color: #2A1F18; margin: 22px 0 10px; padding-bottom: 4px; border-bottom: 1px solid #EDD5B0; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 10pt; }
+  th { text-align: left; padding: 6px 8px; background: #FAF0DC; color: #2A1F18; font-weight: 600; border-bottom: 1px solid #EDD5B0; }
+  td { padding: 6px 8px; border-bottom: 1px solid #F5ECD8; }
+  tr:last-child td { border-bottom: none; }
+  .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #EDD5B0; font-size: 9pt; color: #8A6A4C; text-align: center; }
+  .summary-line { background: #FAF0DC; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 10.5pt; color: #2A1F18; }
+  @media print {
+    .no-print { display: none; }
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+  .actions { position: fixed; top: 12px; right: 12px; background: #fff; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 8px; z-index: 1000; }
+  .actions button { padding: 8px 14px; margin-left: 6px; border: 1px solid #D95F1A; background: #D95F1A; color: white; border-radius: 6px; cursor: pointer; font-size: 11pt; }
+  .actions button.alt { background: white; color: #D95F1A; }
+</style>
+</head>
+<body>
+  <div class="actions no-print">
+    <button class="alt" onclick="window.close()">Cerrar</button>
+    <button onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>
+
+  <div class="header">
+    <h1>Reporte de uso — Aula Clara</h1>
+    <div class="sub">Programa educativo · Municipalidad de Jesús María</div>
+    <div class="meta">Período: <strong>${dEsc(periodoLbl)}</strong> · Escuela: <strong>${dEsc(escuelaLbl)}</strong> · Generado: ${dEsc(generadoEl)}</div>
+  </div>
+
+  <div class="summary-line">
+    En este período, los docentes utilizaron Aula Clara <strong>${total}</strong> ${total === 1 ? 'vez' : 'veces'},
+    con una satisfacción promedio de <strong>${utilAvg} de 5</strong>
+    y un tiempo estimado ahorrado de <strong>${tiempoHoras} horas</strong> de trabajo docente.
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Usos totales</div><div class="kpi-val">${total}</div><div class="kpi-sub">Encuestas completadas</div></div>
+    <div class="kpi"><div class="kpi-label">Satisfacción</div><div class="kpi-val">${utilAvg}</div><div class="kpi-sub">de 5 (escala docente)</div></div>
+    <div class="kpi"><div class="kpi-label">Uso directo</div><div class="kpi-val">${pctSi}%</div><div class="kpi-sub">Sin adaptar el documento</div></div>
+    <div class="kpi"><div class="kpi-label">Tiempo ahorrado</div><div class="kpi-val">${tiempoHoras}h</div><div class="kpi-sub">Estimación acumulada</div></div>
+  </div>
+
+  ${!isSchoolFiltered && escuelasSorted.length > 1 ? `
+    <h2>Uso por escuela</h2>
+    <table>
+      <thead><tr><th>Escuela</th><th style="text-align:right">Usos</th><th style="text-align:right">Satisfacción promedio</th></tr></thead>
+      <tbody>${escuelasHTML}</tbody>
+    </table>
+  ` : ''}
+
+  ${chipsSorted.length ? `
+    <h2>Herramientas más usadas</h2>
+    <table>
+      <thead><tr><th>Herramienta</th><th style="text-align:right">Usos</th></tr></thead>
+      <tbody>${chipsHTML}</tbody>
+    </table>
+  ` : ''}
+
+  <div class="footer">
+    Aula Clara — Asistente pedagógico con IA para docentes de educación primaria.<br>
+    Reporte generado automáticamente desde el panel de uso del programa.
+  </div>
+
+<script>
+  // Auto-disparar dialogo de impresion tras carga.
+  // El usuario elige "Guardar como PDF" en el dialogo.
+  // Comentado por defecto - mejor que el usuario apriete el boton manualmente
+  // para no sorprenderlo. Si se quisiera auto, descomentar:
+  // window.addEventListener('load', () => setTimeout(() => window.print(), 400));
+</script>
+</body>
+</html>`;
+
+  // Abrir en ventana nueva con dimensiones razonables
+  const w = window.open('', '_blank', 'width=900,height=1100');
+  if (!w) {
+    dErr('No se pudo abrir la ventana. Habilitá pop-ups para este sitio.');
+    setTimeout(() => dErr(''), 4000);
+    return;
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
 }
 
 dRenderTimeline([]);
