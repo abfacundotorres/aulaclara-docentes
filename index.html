@@ -1269,15 +1269,9 @@ async function submitReport() {
 
   // v63: comentario libre eliminado para garantizar que ningún docente pueda
   // ingresar datos sensibles del alumno por accidente. Solo se loguea la categoría.
-  // Construir payload. NO mandar contenido del mensaje si el flow es sensible.
-  // Para flows no sensibles, mandar fragmentos cortos del intercambio para tener contexto.
-  const flow = reportState.flow;
-  const sensitive = isSensitiveFlow(flow);
-  const idx = reportState.historyIdx;
-  const botMsg = (idx >= 0 && history[idx]?.role === 'model') ? (history[idx].parts?.[0]?.text || '') : '';
-  // El mensaje del docente que disparó esta respuesta es el anterior al bot
-  const userMsg = (idx > 0 && history[idx-1]?.role === 'user') ? (history[idx-1].parts?.[0]?.text || '') : '';
-
+  // v63.1: user_msg/bot_msg también eliminados — el mensaje del docente y la
+  // respuesta del bot pueden contener datos personales/sensibles aunque el flow
+  // no esté marcado como sensible. Solo se conserva metadata anónima.
   const payload = {
     _survey:    true,
     tipo:       'reporte',
@@ -1285,12 +1279,8 @@ async function submitReport() {
     session_id: SESSION_ID,
     pin:        sessionPin,
     categoria:  reportState.cat,
-    flow:       flow,
+    flow:       reportState.flow,
     chip_usado: reportState.chip,
-    // Si flow sensible: NO loguear contenido. Solo metadata.
-    // Si no sensible: primeras 100/200 chars como contexto para debugging.
-    user_msg:   sensitive ? '[sensible]' : userMsg.slice(0, 100),
-    bot_msg:    sensitive ? '[sensible]' : botMsg.slice(0, 200),
   };
 
   try {
