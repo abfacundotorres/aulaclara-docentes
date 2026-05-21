@@ -759,10 +759,6 @@
       <button type="button" class="report-cat" data-cat="otro" onclick="selectReportCat(this)">💬 Otro motivo</button>
     </div>
 
-    <div class="modal-label" style="margin-top:4px;">Comentario adicional (opcional)</div>
-    <textarea id="reportComment" rows="2" maxlength="300" placeholder="Si querés, contanos qué esperabas..."
-      style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--brown-dark);background:var(--bg-soft);resize:none;box-sizing:border-box;"></textarea>
-
     <div class="modal-actions" style="margin-top:14px;">
       <button class="modal-btn" onclick="closeReportModal()">Cancelar</button>
       <button class="modal-btn primary" id="reportSubmitBtn" onclick="submitReport()" disabled>Enviar</button>
@@ -1248,7 +1244,6 @@ function openReportModal(historyIdx, btn) {
   reportState.bubbleBtn = btn;
   // Reset UI
   document.querySelectorAll('.report-cat').forEach(b => b.classList.remove('selected'));
-  $('reportComment').value = '';
   $('reportSubmitBtn').disabled = true;
   $('reportSubmitBtn').textContent = 'Enviar';
   const m = $('reportModal');
@@ -1271,8 +1266,9 @@ async function submitReport() {
   if (!reportState.cat) return;
   const sbtn = $('reportSubmitBtn');
   sbtn.disabled = true; sbtn.textContent = 'Enviando…';
-  const comment = ($('reportComment').value || '').trim().slice(0, 300);
 
+  // v63: comentario libre eliminado para garantizar que ningún docente pueda
+  // ingresar datos sensibles del alumno por accidente. Solo se loguea la categoría.
   // Construir payload. NO mandar contenido del mensaje si el flow es sensible.
   // Para flows no sensibles, mandar fragmentos cortos del intercambio para tener contexto.
   const flow = reportState.flow;
@@ -1291,7 +1287,6 @@ async function submitReport() {
     categoria:  reportState.cat,
     flow:       flow,
     chip_usado: reportState.chip,
-    comentario: comment,
     // Si flow sensible: NO loguear contenido. Solo metadata.
     // Si no sensible: primeras 100/200 chars como contexto para debugging.
     user_msg:   sensitive ? '[sensible]' : userMsg.slice(0, 100),
@@ -1765,8 +1760,8 @@ async function fetchMsg(message, attempt=0) {
 
     // Si el output se cortó por límite de tokens, lanzar error accionable.
     // NO reintentar — el worker es stateless y el LLM regeneraría desde cero,
-    // produciendo dos documentos concatenados. Con maxTokens:3200 y prompt
-    // recortado esto no debería ocurrir, pero si ocurre: error limpio.
+    // produciendo dos documentos concatenados. Worker v63: thinking OFF en Gemini
+    // + maxTokens 4000 en flows largos, esto no debería ocurrir. Si ocurre: error limpio.
     if (data.truncated) {
       throw Object.assign(new Error('El documento se cortó. Intentá de nuevo — normalmente funciona al segundo intento.'), {fatal:true});
     }
