@@ -322,7 +322,7 @@
   .d-err.show { display:block; }
 
   /* ── KPI grid: 4 columnas en desktop, 2×2 en mobile ── */
-  .d-kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+  .d-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:24px; }
   .d-kpi { background:#161210; border:1px solid rgba(237,213,176,0.10); border-radius:18px; padding:22px 20px; position:relative; overflow:hidden; }
   .d-kpi::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--da,#E06820); }
   .d-kpi-label { font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(245,236,216,0.35); margin-bottom:8px; }
@@ -387,7 +387,7 @@
 
   /* ── Tablet: ≤900px ── */
   @media (max-width:900px) {
-    .d-kpi-grid { grid-template-columns:repeat(2,1fr); }
+    .d-kpi-grid { grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); }
     .d-last { display:none; }
   }
 
@@ -402,8 +402,8 @@
     .d-logo p { display:none; }
     .d-btn { padding:6px 11px; font-size:11px; }
 
-    /* KPIs: 2×2 */
-    .d-kpi-grid { grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+    /* KPIs: auto-fit, 2 columnas en mobile típico */
+    .d-kpi-grid { grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px; }
     .d-kpi { padding:16px 14px; border-radius:14px; }
     .d-kpi-val { font-size:1.75rem; }
     .d-kpi-icon { font-size:16px; top:12px; right:12px; }
@@ -555,6 +555,29 @@
       <div class="d-kpi" style="--da:#E8A830"><div class="d-kpi-icon">⭐</div><div class="d-kpi-label">Utilidad promedio</div><div class="d-kpi-val" id="dKpiUtil">—</div><div class="d-kpi-sub" id="dKpiUtilSub">Escala 1–5</div></div>
       <div class="d-kpi" style="--da:#5A9E40"><div class="d-kpi-icon">✅</div><div class="d-kpi-label">Usaron sin adaptar</div><div class="d-kpi-val" id="dKpiSi">—</div><div class="d-kpi-sub" id="dKpiSiSub">Uso directo</div></div>
       <div class="d-kpi" style="--da:#7B6FD4"><div class="d-kpi-icon">⏱️</div><div class="d-kpi-label">Tiempo ahorrado est.</div><div class="d-kpi-val" id="dKpiTiempo">—</div><div class="d-kpi-sub" id="dKpiTiempoSub">Horas totales</div></div>
+      <!-- v7: KPIs operacionales (datos globales, no se filtran por escuela/mes) -->
+      <div class="d-kpi" style="--da:#4E9BB5"><div class="d-kpi-icon">🤖</div><div class="d-kpi-label">Requests al LLM</div><div class="d-kpi-val" id="dKpiEvTotal">—</div><div class="d-kpi-sub" id="dKpiEvTotalSub">Total global</div></div>
+      <div class="d-kpi" style="--da:#D46F7B"><div class="d-kpi-icon">🔍</div><div class="d-kpi-label">Uso de RAG</div><div class="d-kpi-val" id="dKpiEvRag">—</div><div class="d-kpi-sub" id="dKpiEvRagSub">% con contexto</div></div>
+      <div class="d-kpi" style="--da:#A87CC8"><div class="d-kpi-icon">💎</div><div class="d-kpi-label">Modelo principal</div><div class="d-kpi-val" id="dKpiEvModel" style="font-size:18px;line-height:1.2;">—</div><div class="d-kpi-sub" id="dKpiEvModelSub">Mayoría de respuestas</div></div>
+    </div>
+
+    <!-- v7: Sección de datos operacionales del LLM (eventos globales, no filtrables) -->
+    <div style="margin:6px 0 12px; font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(245,236,216,0.4);">
+      ⚙️ Uso operacional · datos globales
+    </div>
+    <div class="d-row2" style="margin-bottom:10px;">
+      <div class="d-card">
+        <div class="d-card-title">Actividad por herramienta</div>
+        <div class="d-bar-list" id="dEvFlow"><div class="d-empty"><div class="d-empty-icon">📊</div><div class="d-empty-text">Sin datos</div></div></div>
+      </div>
+      <div class="d-card">
+        <div class="d-card-title">Distribución por modelo</div>
+        <div class="d-bar-list" id="dEvModel"><div class="d-empty"><div class="d-empty-icon">💎</div><div class="d-empty-text">Sin datos</div></div></div>
+      </div>
+    </div>
+    <div class="d-card" style="margin-bottom:14px;">
+      <div class="d-card-title">Actividad LLM por escuela <span style="font-weight:400;font-size:11px;color:rgba(245,236,216,0.4);">· todas las requests, no sólo encuestas</span></div>
+      <div class="d-bar-list" id="dEvSchool"><div class="d-empty"><div class="d-empty-icon">🏫</div><div class="d-empty-text">Sin datos</div></div></div>
     </div>
 
     <!-- v59: Card de comparativa por escuela (solo se muestra cuando NO hay filtro aplicado) -->
@@ -2142,6 +2165,8 @@ function dEmpty(icon) {
 
 // v59: cache global de rows para permitir filtrado client-side sin refetch
 let dAllRows = [];
+// v7: cache de agregados de eventos. Pre-agregados en backend, sin filtros aplicables.
+let dEventos = null;
 
 async function dLoadData() {
   const btn = $('dRefreshBtn');
@@ -2160,6 +2185,9 @@ async function dLoadData() {
       throw new Error(data.error || 'Error del servidor (HTTP ' + res.status + ')');
     }
     dAllRows = Array.isArray(data.rows) ? data.rows : [];
+    // v7: eventos pre-agregados desde Apps Script. Globales, no se filtran.
+    dEventos = (data.eventos && typeof data.eventos === 'object') ? data.eventos : null;
+    dRenderEventos(dEventos);
     // v59: poblar selector de escuelas a partir de los datos
     dPopulateSchoolFilter(dAllRows);
     dPopulateMonthFilter(dAllRows);  // v62: filtro por mes
@@ -2387,6 +2415,93 @@ function dRenderTable(rows) {
     <td class="d-col-tiempo">${dEsc(String(r[6]||'—'))}</td>
     <td>${r[7]?`<span class="d-pill ${pilCls[r[7]]||'d-pill-a'}">${dEsc(String(r[7]))}</span>`:'—'}</td>
   </tr>`).join('');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// v7: render de eventos (datos operacionales globales pre-agregados)
+// El payload viene del backend ya agregado: { total, por_flow, por_modelo,
+// por_escuela, rag_pct, rag_chunks_avg }. No se filtra client-side.
+// Si dEventos es null/undefined, se muestran placeholders en todas las cards.
+// ─────────────────────────────────────────────────────────────────
+
+const D_EV_COLORS = ['#E06820','#E8A830','#7DC45E','#F28C4E','#7B6FD4','#4E9BB5','#D46F7B','#8FB55A','#A87CC8'];
+
+// Labels legibles para los flows del backend
+const D_FLOW_LABELS = {
+  'general':         'Consulta libre',
+  'planificacion':   'Planificación',
+  'planificacion_q': 'Planif. (preguntas)',
+  'plan_anual_p0':   'Plan anual · Intro',
+  'plan_anual_p1':   'Plan anual · P1',
+  'plan_anual_p2':   'Plan anual · P2',
+  'plan_anual_p3':   'Plan anual · P3',
+  'adaptacion':      'Adaptación',
+  'adaptacion_q':    'Adapt. (preguntas)',
+  'esi':             'Clase ESI',
+  'esi_q':           'ESI (preguntas)',
+  'boletin':         'Boletín',
+  'resumen':         'Resumen',
+};
+
+function dRenderEventos(ev) {
+  // KPI cards
+  if (!ev || !ev.total) {
+    $('dKpiEvTotal').textContent = '—';
+    $('dKpiEvTotalSub').textContent = 'Sin datos';
+    $('dKpiEvRag').textContent = '—';
+    $('dKpiEvRagSub').textContent = 'Sin datos';
+    $('dKpiEvModel').textContent = '—';
+    $('dKpiEvModelSub').textContent = 'Sin datos';
+    $('dEvFlow').innerHTML = dEmpty('📊');
+    $('dEvModel').innerHTML = dEmpty('💎');
+    $('dEvSchool').innerHTML = dEmpty('🏫');
+    return;
+  }
+  // KPI: total requests
+  $('dKpiEvTotal').textContent = ev.total.toLocaleString('es-AR');
+  $('dKpiEvTotalSub').textContent = 'Llamadas al modelo';
+  // KPI: RAG %
+  $('dKpiEvRag').textContent = (ev.rag_pct || 0) + '%';
+  $('dKpiEvRagSub').textContent = ev.rag_chunks_avg
+    ? `${ev.rag_chunks_avg} chunks promedio`
+    : '% con contexto';
+  // KPI: modelo dominante
+  const modelEntries = Object.entries(ev.por_modelo || {}).sort((a,b) => b[1]-a[1]);
+  if (modelEntries.length) {
+    const [topModel, topCount] = modelEntries[0];
+    const pct = Math.round(topCount / ev.total * 100);
+    $('dKpiEvModel').textContent = topModel;
+    $('dKpiEvModelSub').textContent = `${pct}% del total`;
+  } else {
+    $('dKpiEvModel').textContent = '—';
+    $('dKpiEvModelSub').textContent = 'Sin datos';
+  }
+  // Bar lists
+  dRenderEvBars('dEvFlow', ev.por_flow, lbl => D_FLOW_LABELS[lbl] || lbl);
+  dRenderEvBars('dEvModel', ev.por_modelo);
+  dRenderEvBars('dEvSchool', ev.por_escuela);
+}
+
+// Renderiza una lista de barras horizontales a partir de un Map<label, count>.
+// Reutiliza el patrón visual de dRenderChips/dRenderSchools.
+// labelFn opcional: transforma la key cruda en label legible (ej: flow → "Planificación").
+function dRenderEvBars(elId, counts, labelFn) {
+  const el = $(elId);
+  if (!counts || typeof counts !== 'object') { el.innerHTML = dEmpty('📊'); return; }
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 10);
+  if (!sorted.length) { el.innerHTML = dEmpty('📊'); return; }
+  const total = sorted.reduce((a,[,n]) => a+n, 0);
+  const max = sorted[0][1] || 1;
+  el.innerHTML = sorted.map(([key, n], i) => {
+    const lbl = labelFn ? labelFn(key) : key;
+    const pct = total ? Math.round(n/total*100) : 0;
+    return `
+      <div class="d-bar-row">
+        <div class="d-bar-lbl" title="${dEsc(lbl)}">${dEsc(lbl)}</div>
+        <div class="d-bar-track"><div class="d-bar-fill" style="width:${Math.round(n/max*100)}%;background:${D_EV_COLORS[i % D_EV_COLORS.length]}"></div></div>
+        <div class="d-bar-n">${n} · ${pct}%</div>
+      </div>`;
+  }).join('');
 }
 
 // v62: export PDF mensual del dashboard.
