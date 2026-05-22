@@ -2163,6 +2163,10 @@ let dAllRows = [];
 let dEventos = null;
 
 async function dLoadData() {
+  // B5: guard contra estados inconsistentes — si dashboardPin se perdió
+  // (F5 forzado, llamada programática, error que limpió state) volver al
+  // pinScreen en lugar de intentar el fetch y mostrar un error confuso.
+  if (!dashboardPin) { dExit(); return; }
   const btn = $('dRefreshBtn');
   btn.classList.add('loading');
   dErr('');
