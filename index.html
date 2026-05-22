@@ -1402,7 +1402,7 @@ function makeDownloadBtn(content, label='⬇️ Word', cls='download') {
       await generateWord(content);
       bw.innerHTML = '✅ Word';
       setTimeout(() => { bw.innerHTML = label; bw.disabled = false; }, 3000);
-      logDownload(docTitle);
+      logDownload('Word');
     } catch(e) {
       bw.innerHTML = '❌'; bw.disabled = false;
       showToast(e.message || 'Error al generar Word.');
@@ -1420,7 +1420,7 @@ function makeDownloadBtn(content, label='⬇️ Word', cls='download') {
       generatePDF(content);
       bp.innerHTML = '✅ PDF';
       setTimeout(() => { bp.innerHTML = '📄 PDF'; bp.disabled = false; }, 3000);
-      logDownload(docTitle);
+      logDownload('PDF');
     } catch(e) {
       bp.innerHTML = '❌'; bp.disabled = false;
       showToast(e.message || 'Error al generar PDF.');
