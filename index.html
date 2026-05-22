@@ -556,28 +556,22 @@
       <div class="d-kpi" style="--da:#5A9E40"><div class="d-kpi-icon">✅</div><div class="d-kpi-label">Usaron sin adaptar</div><div class="d-kpi-val" id="dKpiSi">—</div><div class="d-kpi-sub" id="dKpiSiSub">Uso directo</div></div>
       <div class="d-kpi" style="--da:#7B6FD4"><div class="d-kpi-icon">⏱️</div><div class="d-kpi-label">Tiempo ahorrado est.</div><div class="d-kpi-val" id="dKpiTiempo">—</div><div class="d-kpi-sub" id="dKpiTiempoSub">Horas totales</div></div>
       <!-- v7: KPIs operacionales (datos globales, no se filtran por escuela/mes) -->
-      <div class="d-kpi" style="--da:#4E9BB5"><div class="d-kpi-icon">🤖</div><div class="d-kpi-label">Requests al LLM</div><div class="d-kpi-val" id="dKpiEvTotal">—</div><div class="d-kpi-sub" id="dKpiEvTotalSub">Total global</div></div>
-      <div class="d-kpi" style="--da:#D46F7B"><div class="d-kpi-icon">🔍</div><div class="d-kpi-label">Uso de RAG</div><div class="d-kpi-val" id="dKpiEvRag">—</div><div class="d-kpi-sub" id="dKpiEvRagSub">% con contexto</div></div>
-      <div class="d-kpi" style="--da:#A87CC8"><div class="d-kpi-icon">💎</div><div class="d-kpi-label">Modelo principal</div><div class="d-kpi-val" id="dKpiEvModel" style="font-size:18px;line-height:1.2;">—</div><div class="d-kpi-sub" id="dKpiEvModelSub">Mayoría de respuestas</div></div>
+      <div class="d-kpi" style="--da:#D46F7B"><div class="d-kpi-icon">🔍</div><div class="d-kpi-label">Uso de contexto curricular</div><div class="d-kpi-val" id="dKpiEvRag">—</div><div class="d-kpi-sub" id="dKpiEvRagSub">% con respaldo del DC</div></div>
     </div>
 
-    <!-- v7: Sección de datos operacionales del LLM (eventos globales, no filtrables) -->
+    <!-- v7: Sección de datos operacionales (eventos globales, no filtrables) -->
     <div style="margin:6px 0 12px; font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(245,236,216,0.4);">
-      ⚙️ Uso operacional · datos globales
+      ⚙️ Actividad general · datos globales
     </div>
-    <div class="d-row2" style="margin-bottom:10px;">
+    <div class="d-row2" style="margin-bottom:14px;">
       <div class="d-card">
         <div class="d-card-title">Actividad por herramienta</div>
         <div class="d-bar-list" id="dEvFlow"><div class="d-empty"><div class="d-empty-icon">📊</div><div class="d-empty-text">Sin datos</div></div></div>
       </div>
       <div class="d-card">
-        <div class="d-card-title">Distribución por modelo</div>
-        <div class="d-bar-list" id="dEvModel"><div class="d-empty"><div class="d-empty-icon">💎</div><div class="d-empty-text">Sin datos</div></div></div>
+        <div class="d-card-title">Actividad por escuela <span style="font-weight:400;font-size:11px;color:rgba(245,236,216,0.4);">· toda la actividad, no sólo encuestas</span></div>
+        <div class="d-bar-list" id="dEvSchool"><div class="d-empty"><div class="d-empty-icon">🏫</div><div class="d-empty-text">Sin datos</div></div></div>
       </div>
-    </div>
-    <div class="d-card" style="margin-bottom:14px;">
-      <div class="d-card-title">Actividad LLM por escuela <span style="font-weight:400;font-size:11px;color:rgba(245,236,216,0.4);">· todas las requests, no sólo encuestas</span></div>
-      <div class="d-bar-list" id="dEvSchool"><div class="d-empty"><div class="d-empty-icon">🏫</div><div class="d-empty-text">Sin datos</div></div></div>
     </div>
 
     <!-- v59: Card de comparativa por escuela (solo se muestra cuando NO hay filtro aplicado) -->
@@ -2446,39 +2440,19 @@ const D_FLOW_LABELS = {
 function dRenderEventos(ev) {
   // KPI cards
   if (!ev || !ev.total) {
-    $('dKpiEvTotal').textContent = '—';
-    $('dKpiEvTotalSub').textContent = 'Sin datos';
     $('dKpiEvRag').textContent = '—';
     $('dKpiEvRagSub').textContent = 'Sin datos';
-    $('dKpiEvModel').textContent = '—';
-    $('dKpiEvModelSub').textContent = 'Sin datos';
     $('dEvFlow').innerHTML = dEmpty('📊');
-    $('dEvModel').innerHTML = dEmpty('💎');
     $('dEvSchool').innerHTML = dEmpty('🏫');
     return;
   }
-  // KPI: total requests
-  $('dKpiEvTotal').textContent = ev.total.toLocaleString('es-AR');
-  $('dKpiEvTotalSub').textContent = 'Llamadas al modelo';
-  // KPI: RAG %
+  // KPI: % con contexto curricular (RAG)
   $('dKpiEvRag').textContent = (ev.rag_pct || 0) + '%';
   $('dKpiEvRagSub').textContent = ev.rag_chunks_avg
-    ? `${ev.rag_chunks_avg} chunks promedio`
-    : '% con contexto';
-  // KPI: modelo dominante
-  const modelEntries = Object.entries(ev.por_modelo || {}).sort((a,b) => b[1]-a[1]);
-  if (modelEntries.length) {
-    const [topModel, topCount] = modelEntries[0];
-    const pct = Math.round(topCount / ev.total * 100);
-    $('dKpiEvModel').textContent = topModel;
-    $('dKpiEvModelSub').textContent = `${pct}% del total`;
-  } else {
-    $('dKpiEvModel').textContent = '—';
-    $('dKpiEvModelSub').textContent = 'Sin datos';
-  }
+    ? `${ev.rag_chunks_avg} fragmentos promedio`
+    : '% con respaldo del DC';
   // Bar lists
   dRenderEvBars('dEvFlow', ev.por_flow, lbl => D_FLOW_LABELS[lbl] || lbl);
-  dRenderEvBars('dEvModel', ev.por_modelo);
   dRenderEvBars('dEvSchool', ev.por_escuela);
 }
 
