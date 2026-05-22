@@ -871,13 +871,18 @@ function isDoc(t) {
 
 // ── Extrae contexto del docente ─────────────────────────────────
 function extractDocenteCtx(userText) {
-  const reserved = ['docente','profe','profesora','profesor','directora','director',
-                    'maestra','maestro','primaria','segundo','tercer','primer'];
+  // B6: filtro con word-boundary para no rechazar apellidos legítimos
+  // ("Diego Primero", "Marta Maestre") que incluyan estas palabras como substring.
+  // Solo rechazamos si la palabra COMPLETA está en la lista, no como parte de otra.
+  // Nota: el /i del regex de nombre captura también nombres en minúscula
+  // ("me llamo maria" -> "maria"). Es comportamiento heredado, no se cambia acá
+  // para no alterar el scope de este fix.
+  const reserved = /\b(docente|profe|profesora|profesor|directora|director|maestra|maestro|primaria|segundo|tercer|primer)\b/i;
   const nameMatch = userText.match(/(?:me llamo|mi nombre es)\s+([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,}(?:\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,})?)/i);
   if (nameMatch) {
-    const candidate = nameMatch[1].trim().toLowerCase();
-    if (!reserved.some(r => candidate.includes(r))) {
-      docenteCtx.nombre = nameMatch[1].trim();
+    const candidate = nameMatch[1].trim();
+    if (!reserved.test(candidate)) {
+      docenteCtx.nombre = candidate;
     }
   }
   const gradoMatch = userText.match(/([1-6])[°º](?:\s*grado)?/i);
