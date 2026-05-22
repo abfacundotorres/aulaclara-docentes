@@ -1510,19 +1510,24 @@ function appendMessage(text, role, noSideEffects = false) {
 
   // Plan Anual accumulation + flow advance — suprimido durante restauración
   if (role==='bot' && !noSideEffects) {
-    if (cleanText.includes('[PERIODO_0]')) {
+    // B3: guards idempotentes (plan.pX === null) — si el LLM regenera el mismo
+    // período por error o repite el marcador en un texto inesperado, NO disparamos
+    // un segundo salto. La fuente de verdad es plan.pX: una vez seteado, el salto
+    // de ese período ya ocurrió. Para regenerar el plan entero el docente usa
+    // "Nueva consulta" (resetChat → plan.reset() → todos vuelven a null).
+    if (cleanText.includes('[PERIODO_0]') && plan.p0 === null) {
       plan.p0=cleanText; updateProgress(0); activeFlow='plan_anual_p1';
       Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá el período 1'); });
     }
-    if (cleanText.includes('[PERIODO_1]')) {
+    if (cleanText.includes('[PERIODO_1]') && plan.p1 === null) {
       plan.p1=cleanText; updateProgress(1); activeFlow='plan_anual_p2';
       Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá el período 2'); });
     }
-    if (cleanText.includes('[PERIODO_2]')) {
+    if (cleanText.includes('[PERIODO_2]') && plan.p2 === null) {
       plan.p2=cleanText; updateProgress(2); activeFlow='plan_anual_p3';
       Promise.resolve().then(() => { if (!isLoading) sendMessage('Generá el período 3'); });
     }
-    if (cleanText.includes('[PERIODO_3]')) { plan.p3=cleanText; updateProgress(3); }
+    if (cleanText.includes('[PERIODO_3]') && plan.p3 === null) { plan.p3=cleanText; updateProgress(3); }
     // Encuesta: activar surveyTriggerPending cuando se genera un documento completo en flows pertinentes
     const isDocFlow = ['planificacion','esi','boletin','adaptacion',
       'plan_anual_p1','plan_anual_p2','plan_anual_p3'].includes(activeFlow);
