@@ -1689,30 +1689,27 @@ function appendMessage(text, role, noSideEffects = false) {
 
 // v62: deshacer ultimo ajuste - elimina el bot ajuste + el user que lo pidio
 // del history y del DOM, dejando al docente en la version anterior del documento.
+// FIX bug-undo: la validación previa exigía que userText empezara con "[AJUSTE]",
+// pero sendMessage stripea ese prefijo antes de pushearlo al history (línea ~1810).
+// Como consecuencia, el undo nunca ejecutaba para ajustes con chips de texto libre.
+// El chip "Volver al anterior" solo se renderiza cuando hasAjuste es true (línea 1654-55),
+// así que confiamos en el contexto del caller: solo validamos roles, no contenido.
 function undoLastAdjustment() {
   // Estructura tipica:
-  //   history[N-1] = model (respuesta del ajuste con FIN_AJUSTE)
-  //   history[N-2] = user ([AJUSTE] ...)
-  // Validar que esto sea cierto antes de eliminar.
+  //   history[N-1] = model (respuesta del ajuste)
+  //   history[N-2] = user (texto del ajuste sin prefijo [AJUSTE])
   if (history.length < 2) return;
   const last = history[history.length - 1];
   const prev = history[history.length - 2];
   if (last?.role !== 'model' || prev?.role !== 'user') return;
-  // El user message del [AJUSTE] empieza con "[AJUSTE]" o es "Rehacé la planificación completa"
-  // Solo permitimos undo si es claramente un ajuste, no la generacion original.
-  const userText = prev.parts?.[0]?.text || '';
-  if (!userText.startsWith('[AJUSTE]') && !userText.startsWith('Rehacé')) return;
   // Eliminar del history
   history.splice(history.length - 2, 2);
   // Eliminar del DOM las dos ultimas burbujas (user + bot)
-  // msg-row es la clase que envuelve cada mensaje
-  // msg es la variable global que apunta al contenedor #messages
   const rows = msg.querySelectorAll('.msg-row');
-  // El typingRow es el ultimo siempre; lo ignoramos
   const realRows = [...rows].filter(r => r.id !== 'typingRow');
   if (realRows.length >= 2) {
     realRows[realRows.length - 1].remove(); // bot (ajuste)
-    realRows[realRows.length - 2].remove(); // user ([AJUSTE])
+    realRows[realRows.length - 2].remove(); // user (ajuste)
   }
   // Persistir el cambio (en flows no sensibles)
   saveSession();
