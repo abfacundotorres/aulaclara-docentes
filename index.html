@@ -201,6 +201,14 @@
   }
   #surveyFloatBtn:hover { background: var(--orange-hover); box-shadow: 0 5px 20px rgba(217,95,26,0.32); }
 
+  /* Fix mobile: subir botones flotantes para no chocar con el textarea expandido.
+     En mobile el .input-area puede crecer hasta ~180px con textarea max-height:110px +
+     char-count + disclaimer. Los valores 108/158 originales asumen viewport desktop. */
+  @media (max-width: 640px) {
+    #surveyFloatBtn { bottom: 188px; }
+    #resumeBtn      { bottom: 238px; }
+  }
+
   /* ── Modal encuesta ── */
   .modal-overlay {
     position: fixed; inset: 0; z-index: 300;
@@ -1361,11 +1369,20 @@ function updateResumeBtn() {
   // - general / resumen / otros: después del 4to mensaje
   const isDocFlow = ['planificacion','esi','boletin','adaptacion',
     'plan_anual_p0','plan_anual_p1','plan_anual_p2','plan_anual_p3'].includes(activeFlow);
+
+  // Fix mobile: en flows con doc, NO mostrar resumen hasta que exista al menos una
+  // respuesta del LLM con [FIN_DOCUMENTO] en el history. Esto evita que el botón
+  // aparezca durante streaming intermedio (ej: entre P0→P1 de plan anual, donde
+  // isLoading parpadea a false) tapando el área del input en mobile.
+  const hasFinishedDoc = isDocFlow
+    ? history.some(t => t.role === 'model' && t.parts[0].text.includes('[FIN_DOCUMENTO]'))
+    : true;
+
   const showSurvey = !surveyShown && !isLoading && (
     surveyTriggerPending ||
     (!isDocFlow && messageCount >= 4)
   );
-  $('resumeBtn').classList.toggle('visible', showResume);
+  $('resumeBtn').classList.toggle('visible', showResume && hasFinishedDoc);
   if (showSurvey && !$('surveyFloatBtn').classList.contains('visible')) $('surveyFloatBtn').classList.add('visible');
 }
 
