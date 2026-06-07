@@ -1736,7 +1736,10 @@ function undoLastAdjustment() {
 
 // ── History payload ─────────────────────────────────────────────
 function historyPayload() {
-  return history.slice(-HISTORY_LIMIT).map(t => {
+  // v73: boletin encadena varios alumnos; mandamos ventana más amplia para que el
+  // aviso de privacidad inicial sobreviva (el Worker lee hasta HISTORY_LIMIT*2 en boletin).
+  const sendLimit = activeFlow === 'boletin' ? HISTORY_LIMIT * 2 : HISTORY_LIMIT;
+  return history.slice(-sendLimit).map(t => {
     const text = t.parts[0].text;
     let truncated;
     if (isDoc(text)) {
